@@ -662,6 +662,9 @@ async function loadCartoesView() {
     return { ...c, fatura: dc.fatura || 0, pct: dc.pct || 0, disponivel: dc.disponivel || c.limite_total };
   });
 
+  // Salvar versão enriquecida para verDetalheCartao usar
+  S.cartoes = enriched;
+
   const bands = { Mastercard: '⊕', Visa: '◉', Elo: '◈', 'American Express': '✦', Hipercard: '✿' };
 
   if (grid) grid.innerHTML = enriched.map(c => `
@@ -1348,8 +1351,19 @@ async function confirmarAporte() {
 
 // ══════════ DETALHE DO CARTÃO (mês a mês) ══════════
 async function verDetalheCartao(cartaoId) {
-  const cartao = S.cartoes.find(c => c.id === cartaoId);
-  if (!cartao) return;
+  cartaoId = parseInt(cartaoId);
+
+  // Buscar cartão — primeiro tenta S.cartoes (já enriquecido), senão busca do DB
+  let cartao = S.cartoes.find(c => Number(c.id) === cartaoId);
+  if (!cartao) {
+    const todos = await api('/api/cartoes');
+    const base = todos.find(c => Number(c.id) === cartaoId);
+    if (!base) { toast('Cartão não encontrado', 'err'); return; }
+    // Enriquecer com fatura do mês atual
+    const dash = await api(`/api/dashboard?ano=${S.ano}&mes=${S.mes}`);
+    const dc = (dash.cartoes || []).find(d => Number(d.id) === cartaoId) || {};
+    cartao = { ...base, fatura: dc.fatura || 0, pct: dc.pct || 0, disponivel: dc.disponivel || base.limite_total };
+  }
 
   // Montar view de detalhe
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));

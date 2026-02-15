@@ -11,13 +11,44 @@ let db = null;
 //  INICIALIZAÇÃO DO BANCO
 // ══════════════════════════════════════════════
 
+// Migração: converte cartao_id de string para number nas despesas
+async function migrarCartaoIdParaNumber() {
+  try {
+    const store = await getStore('despesas', 'readwrite');
+    const despesas = await new Promise((res, rej) => {
+      const req = store.getAll();
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    });
+    
+    let migradas = 0;
+    for (const d of despesas) {
+      if (d.cartao_id !== null && d.cartao_id !== undefined && typeof d.cartao_id === 'string') {
+        d.cartao_id = parseInt(d.cartao_id);
+        const s2 = await getStore('despesas', 'readwrite');
+        await new Promise((res, rej) => {
+          const req = s2.put(d);
+          req.onsuccess = () => res();
+          req.onerror = () => rej(req.error);
+        });
+        migradas++;
+      }
+    }
+    if (migradas > 0) console.log(`✅ Migradas ${migradas} despesas: cartao_id string → number`);
+  } catch (e) {
+    console.warn('Migração cartao_id falhou (não crítico):', e);
+  }
+}
+
 async function initDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     
     request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
+    request.onsuccess = async () => {
       db = request.result;
+      // Migrar cartao_id de string para number nas despesas existentes
+      await migrarCartaoIdParaNumber();
       resolve(db);
     };
     
@@ -492,7 +523,7 @@ async function gerarAlertas(ano, mes) {
   
   for (const cartao of cartoes) {
     const usadoCartao = despesasMes
-      .filter(d => d.cartao_id === cartao.id)
+      .filter(d => Number(d.cartao_id) === Number(cartao.id))
       .reduce((a, b) => a + b.valor, 0);
     
     const pctLimite = (usadoCartao / cartao.limite_total) * 100;
@@ -572,7 +603,7 @@ window.DB = {
     
     for (const cartao of cartoes) {
       const usadoCartao = despesasMes
-        .filter(d => d.cartao_id === cartao.id)
+        .filter(d => Number(d.cartao_id) === Number(cartao.id))
         .reduce((a, b) => a + b.valor, 0);
       
       cartoes_data.push({
@@ -680,7 +711,7 @@ window.DB = {
     return despesas
       .filter(d => d.data >= ini && d.data <= fim)
       .map(d => {
-        const cartao = cartoes.find(c => c.id === d.cartao_id);
+        const cartao = cartoes.find(c => Number(c.id) === Number(d.cartao_id));
         return {
           ...d,
           cn: cartao?.nome || null,
@@ -702,6 +733,8 @@ window.DB = {
     if (forma === 'parcelado' && parcelas > 1) {
       const gid = Math.random().toString(36).substring(2, 12);
       const vparcela = Math.round((valor / parcelas) * 100) / 100;
+      // Garantir cartao_id como number
+      const cartaoId = data.cartao_id ? parseInt(data.cartao_id) : null;
       
       for (let i = 0; i < parcelas; i++) {
         const dp = new Date(dataBase);
@@ -714,7 +747,7 @@ window.DB = {
           data: dataStr,
           categoria: data.categoria,
           forma_pagamento: forma,
-          cartao_id: data.cartao_id || null,
+          cartao_id: cartaoId,
           parcelas_total: parcelas,
           parcela_atual: i + 1,
           grupo_id: gid,
@@ -723,13 +756,15 @@ window.DB = {
         });
       }
     } else {
+      // Garantir cartao_id como number
+      const cartaoId = data.cartao_id ? parseInt(data.cartao_id) : null;
       await add('despesas', {
         nome: data.nome,
         valor: valor,
         data: data.data,
         categoria: data.categoria,
         forma_pagamento: forma,
-        cartao_id: data.cartao_id || null,
+        cartao_id: cartaoId,
         parcelas_total: 1,
         parcela_atual: 1,
         grupo_id: null,
