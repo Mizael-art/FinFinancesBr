@@ -15,25 +15,17 @@
 - 🌙 **Tema claro/escuro** adaptável
 - 📱 **Funciona offline** — todos os dados ficam no seu iPhone
 
-## 📲 Como Instalar no iPhone
+## 📲 Como Instalar no iPhone ou Android
 
-### Passo 1: Hospedagem
-Você precisa hospedar os arquivos em algum lugar. Opções gratuitas:
-
-1. **GitHub Pages** (recomendado)
-2. **Netlify**
-3. **Vercel**
-4. **Cloudflare Pages**
-
-### Passo 2: Abrir no Safari
-1. Abra o Safari no iPhone
-2. Acesse a URL onde você hospedou o app
+### Passo 1: Abrir no Safari
+1. Abra o Safari no iPhone, ou Navegador no Android
+2. Acesse a URL do GitHub https://mizael-art.github.io/FinFinancesBr/
 3. Clique no botão **Compartilhar** (quadrado com seta)
 4. Role e selecione **"Adicionar à Tela de Início"**
 5. Confirme o nome e clique em **Adicionar**
 
 ### Passo 3: Pronto!
-O app agora está instalado como um aplicativo nativo no seu iPhone e funciona **completamente offline**.
+O app agora está instalado como um aplicativo nativo no seu iPhone ou Android e funciona **completamente offline**.
 
 ## 🗂️ Estrutura de Arquivos
 
