@@ -374,6 +374,15 @@ input[type="number"].form-input::-webkit-outer-spin-button {
   margin: 0;
 }
 
+/* Aceitar valores inteiros e decimais sem restrição */
+input[type="number"].form-input:invalid {
+  border-color: var(--v-red);
+}
+
+input[type="number"].form-input:valid {
+  border-color: var(--bdr);
+}
+
 /* Melhor experiência em mobile */
 .form-input {
   font-size: 16px !important; /* Evita zoom no iOS */
