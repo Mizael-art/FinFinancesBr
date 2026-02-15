@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<base href="./">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FinFinance">
+<meta name="theme-color" content="#8B5CF6">
+<meta name="description" content="Controle financeiro pessoal inteligente">
+<title>FinFinance</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="themes.css">
+<link rel="stylesheet" href="mobile.css">
+<script>
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('✅ Service Worker registrado'))
+      .catch(err => console.log('❌ Service Worker falhou:', err));
+  });
+}
+</script>
+</head>
+<body>
+
+<!-- ═══ SPLASH SCREEN ═══ -->
+<div id="splash" class="splash">
+  <div class="splash-bg">
+    <div class="splash-orb orb1"></div>
+    <div class="splash-orb orb2"></div>
+    <div class="splash-orb orb3"></div>
+    <div class="splash-grid"></div>
+  </div>
+  <div class="splash-content">
+    <div class="splash-logo">
+      <div class="splash-icon">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <path d="M20 4L36 13V27L20 36L4 27V13L20 4Z" fill="url(#grad)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+          <path d="M13 20h14M20 13v14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="grad" x1="4" y1="4" x2="36" y2="36">
+              <stop stop-color="#A78BFA"/>
+              <stop offset="1" stop-color="#4C1D95"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="splash-brand">
+        <span class="splash-fin">Fin</span><span class="splash-finance">Finance</span>
+      </div>
+    </div>
+    <p class="splash-tagline">Seu dinheiro, inteligente.</p>
+    <div class="splash-loader">
+      <div class="splash-bar"></div>
+    </div>
+    <p class="splash-status" id="splash-status">Iniciando...</p>
+  </div>
+</div>
+
+<!-- ═══ ONBOARDING ═══ -->
+<div id="onboarding" class="onboarding hidden">
+  <div class="onb-bg">
+    <div class="onb-orb"></div>
+  </div>
+  <div class="onb-card">
+    <div class="onb-step active" id="onb-0">
+      <div class="onb-emoji">👋</div>
+      <h2>Bem-vindo ao FinFinance</h2>
+      <p>Controle suas finanças com inteligência. Vamos começar configurando seu perfil.</p>
+      <button class="btn-primary" onclick="nextOnb(1)">Vamos começar →</button>
+    </div>
+    <div class="onb-step" id="onb-1">
+      <div class="onb-emoji">👤</div>
+      <h2>Como você se chama?</h2>
+      <input type="text" id="onb-nome" class="onb-input" placeholder="Seu nome" autofocus>
+      <button class="btn-primary" onclick="nextOnb(2)">Próximo →</button>
+    </div>
+    <div class="onb-step" id="onb-2">
+      <div class="onb-emoji">💰</div>
+      <h2>Qual é sua renda mensal?</h2>
+      <input type="number" id="onb-salario" class="onb-input" placeholder="Ex: 5000" min="0" step="100">
+      <p class="onb-hint">Inclua salário e outras fontes de renda</p>
+      <button class="btn-primary" onclick="nextOnb(3)">Próximo →</button>
+    </div>
+    <div class="onb-step" id="onb-3">
+      <div class="onb-emoji">🎨</div>
+      <h2>Escolha seu tema</h2>
+      <p style="margin-bottom: 1rem;">Personalize as cores do app</p>
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+        <div onclick="selecionarOnbTema('roxo')" class="onb-tema-opt active" data-cor="roxo" style="height: 50px; border-radius: 10px; background: linear-gradient(135deg, #8B5CF6, #A78BFA); cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(139,92,246,0.5); color: white; font-size: 1.2rem;">✓</div>
+        <div onclick="selecionarOnbTema('verde')" class="onb-tema-opt" data-cor="verde" style="height: 50px; border-radius: 10px; background: linear-gradient(135deg, #10B981, #34D399); cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px solid transparent;"></div>
+        <div onclick="selecionarOnbTema('vermelho')" class="onb-tema-opt" data-cor="vermelho" style="height: 50px; border-radius: 10px; background: linear-gradient(135deg, #EF4444, #F87171); cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px solid transparent;"></div>
+        <div onclick="selecionarOnbTema('branco')" class="onb-tema-opt" data-cor="branco" style="height: 50px; border-radius: 10px; background: linear-gradient(135deg, #F4F4F5, #FFFFFF); cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px solid #E4E4E7;"></div>
+        <div onclick="selecionarOnbTema('preto')" class="onb-tema-opt" data-cor="preto" style="height: 50px; border-radius: 10px; background: linear-gradient(135deg, #18181B, #09090B); cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px solid transparent;"></div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1.5rem;">
+        <div onclick="selecionarOnbModo('claro')" class="onb-modo-opt" data-modo="claro" style="padding: 0.75rem; border-radius: 10px; background: white; color: #18181B; cursor: pointer; text-align: center; font-weight: 600; border: 2px solid transparent;">☀️ Claro</div>
+        <div onclick="selecionarOnbModo('escuro')" class="onb-modo-opt active" data-modo="escuro" style="padding: 0.75rem; border-radius: 10px; background: #18181B; color: white; cursor: pointer; text-align: center; font-weight: 600; border: 2px solid rgba(139,92,246,0.5);">🌙 Escuro</div>
+      </div>
+      <button class="btn-primary" onclick="finishOnbV2()">Começar →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let onbTemaEscolhido = { cor: 'roxo', modo: 'escuro' };
+
+function selecionarOnbTema(cor) {
+  onbTemaEscolhido.cor = cor;
+  document.querySelectorAll('.onb-tema-opt').forEach(el => {
+    if (el.dataset.cor === cor) {
+      el.classList.add('active');
+      el.innerHTML = '✓';
+      el.style.borderColor = 'rgba(255,255,255,0.5)';
+    } else {
+      el.classList.remove('active');
+      el.innerHTML = '';
+      el.style.borderColor = 'transparent';
+    }
+  });
+}
+
+function selecionarOnbModo(modo) {
+  onbTemaEscolhido.modo = modo;
+  document.querySelectorAll('.onb-modo-opt').forEach(el => {
+    if (el.dataset.modo === modo) {
+      el.classList.add('active');
+      el.style.borderColor = 'rgba(139,92,246,0.5)';
+    } else {
+      el.classList.remove('active');
+      el.style.borderColor = 'transparent';
+    }
+  });
+}
+
+async function finishOnbV2() {
+  const nome = document.getElementById('onb-nome')?.value || 'Usuário';
+  const salario = parseFloat(document.getElementById('onb-salario')?.value || 0);
+  
+  await DB.updateProfile({
+    nome,
+    salario,
+    outras_rendas: 0,
+    dia_pagamento: 5,
+    tema_cor: onbTemaEscolhido.cor,
+    tema_modo: onbTemaEscolhido.modo,
+    onboarding_done: 1
+  });
+  
+  document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  
+  await aplicarTema();
+  
+  const p = await DB.getProfile();
+  updateMonthLabel();
+  loadDashboard();
+  loadCartoes();
+  
+  if (window.innerWidth <= 768) {
+    criarBottomNav();
+  }
+}
+</script>
+
+<!-- ═══ APP PRINCIPAL ═══ -->
+<div id="app" class="app hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="logo">
+        <div class="logo-gem">◆</div>
+        <span class="logo-text">Fin<strong>Finance</strong></span>
+      </div>
+      <nav class="nav">
+        <a class="nav-link active" data-view="dashboard" href="#" onclick="goto('dashboard',this)">
+          <i class="ni">⬡</i><span>Dashboard</span>
+        </a>
+        <a class="nav-link" data-view="dicas" href="#" onclick="goto('dicas',this)">
+          <i class="ni">◈</i><span>Dicas Inteligentes</span>
+          <span class="nav-badge" id="nav-score-badge"></span>
+        </a>
+        <a class="nav-link" data-view="cartoes" href="#" onclick="goto('cartoes',this)">
+          <i class="ni">⊡</i><span>Cartões</span>
+        </a>
+        <a class="nav-link" data-view="despesas" href="#" onclick="goto('despesas',this)">
+          <i class="ni">↕</i><span>Despesas</span>
+        </a>
+        <a class="nav-link" data-view="contas" href="#" onclick="goto('contas',this)">
+          <i class="ni">⊗</i><span>Contas Fixas</span>
+        </a>
+        <a class="nav-link" data-view="historico" href="#" onclick="goto('historico',this)">
+          <i class="ni">◎</i><span>Histórico</span>
+        </a>
+      </nav>
+    </div>
+    <div class="sidebar-foot">
+      <a class="nav-link" data-view="perfil" href="#" onclick="goto('perfil',this)">
+        <i class="ni">◉</i><span>Perfil</span>
+      </a>
+      <button class="theme-btn" onclick="toggleTema()" id="tema-btn" title="Alternar tema">
+        <span id="tema-icon">☀</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="month-ctrl">
+        <button class="mnav" onclick="changeMonth(-1)">‹</button>
+        <span id="month-lbl" class="month-lbl"></span>
+        <button class="mnav" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="topbar-right">
+        <button class="alert-btn" id="alert-btn" onclick="toggleAlerts()">
+          🔔<span class="alert-count" id="alert-count" style="display:none">0</span>
+        </button>
+        <div class="user-pill" onclick="goto('perfil',null)">
+          <div class="user-av" id="user-av">U</div>
+          <span id="user-nm">Usuário</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ALERTS PANEL -->
+    <div class="alerts-panel" id="alerts-panel" style="display:none">
+      <div class="ap-head">
+        <span>Alertas</span>
+        <button onclick="clearAlerts()">Limpar tudo</button>
+      </div>
+      <div id="ap-list"></div>
+    </div>
+
+    <!-- ═══ VIEWS ═══ -->
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="v-dashboard">
+      <div class="view-head">
+        <h1>Dashboard</h1>
+        <button class="btn-primary" onclick="openModal('despesa')">+ Nova Despesa</button>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi green">
+          <div class="kpi-top"><span class="kpi-lbl">Renda do mês</span><span class="kpi-icon">↑</span></div>
+          <div class="kpi-val" id="k-renda">—</div>
+          <div class="kpi-sub" id="k-renda-sub">—</div>
+        </div>
+        <div class="kpi red">
+          <div class="kpi-top"><span class="kpi-lbl">Gastos totais</span><span class="kpi-icon">↓</span></div>
+          <div class="kpi-val" id="k-gasto">—</div>
+          <div class="kpi-sub" id="k-gasto-sub">—</div>
+        </div>
+        <div class="kpi purple">
+          <div class="kpi-top"><span class="kpi-lbl">Saldo livre</span><span class="kpi-icon">◈</span></div>
+          <div class="kpi-val" id="k-saldo">—</div>
+          <div class="kpi-sub">Renda − Gastos</div>
+        </div>
+        <div class="kpi orange">
+          <div class="kpi-top"><span class="kpi-lbl">Faturas crédito</span><span class="kpi-icon">💳</span></div>
+          <div class="kpi-val" id="k-cred">—</div>
+          <div class="kpi-sub" id="k-cred-sub">—</div>
+        </div>
+      </div>
+
+      <!-- Score do FinFinance -->
+      <div class="score-banner" id="score-banner" onclick="goto('dicas',null)" style="cursor:pointer">
+        <div class="score-left">
+          <div class="score-circle" id="score-circle">
+            <svg viewBox="0 0 80 80" class="score-svg">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+              <circle cx="40" cy="40" r="34" fill="none" stroke="url(#scoreGrad)" stroke-width="6"
+                stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                id="score-arc" style="transform:rotate(-90deg);transform-origin:center"/>
+              <defs>
+                <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#A78BFA"/>
+                  <stop offset="100%" stop-color="#34D399"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <span class="score-num" id="score-num">—</span>
+          </div>
+          <div class="score-info">
+            <div class="score-title">Score Financeiro</div>
+            <div class="score-desc" id="score-desc">—</div>
+          </div>
+        </div>
+        <div class="score-right">
+          <div class="score-hint">Ver dicas inteligentes →</div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-card">
+        <div class="progress-head">
+          <span>Orçamento comprometido</span>
+          <span id="prog-pct" class="mono">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-foot" id="prog-foot">Configure sua renda no Perfil</div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-row">
+        <div class="card chart-card">
+          <div class="card-head"><h3>Gastos por categoria</h3></div>
+          <div class="chart-body"><canvas id="ch-cat"></canvas></div>
+        </div>
+        <div class="card chart-card">
+          <div class="card-head"><h3>Evolução — 6 meses</h3></div>
+          <div class="chart-body"><canvas id="ch-evo"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Bottom -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-head">
+            <h3>Cartões</h3>
+            <a href="#" onclick="goto('cartoes',null)" class="card-more">ver todos →</a>
+          </div>
+          <div id="dash-cards"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3>Contas Fixas</h3>
+            <a href="#" onclick="goto('contas',null)" class="card-more">gerenciar →</a>
+          </div>
+          <div id="dash-contas"></div>
+          <div class="card-total" id="dash-contas-total"></div>
+        </div>
+      </div>
+
+      <!-- Transações -->
+      <div class="card mt">
+        <div class="card-head">
+          <h3>Transações recentes</h3>
+          <a href="#" onclick="goto('despesas',null)" class="card-more">ver todas →</a>
+        </div>
+        <div id="dash-txs"></div>
+      </div>
+    </div>
+
+    <!-- ═══ DICAS INTELIGENTES ═══ -->
+    <div class="view" id="v-dicas">
+      <div class="view-head">
+        <h1>💡 Dicas Inteligentes</h1>
+        <button class="btn-ghost" onclick="reloadDicas()">↺ Atualizar</button>
+      </div>
+
+      <!-- Diagnóstico Principal -->
+      <div class="diagnostico-hero" id="diag-hero">
+        <div class="diag-left">
+          <div class="diag-score-big" id="diag-score-big">—</div>
+          <div class="diag-label">Score Financeiro</div>
+          <div class="diag-bar-wrap">
+            <div class="diag-bar-fill" id="diag-bar-fill" style="width:0%"></div>
+          </div>
+          <div class="diag-nivel" id="diag-nivel"></div>
+        </div>
+        <div class="diag-right">
+          <div class="diag-emoji" id="diag-emoji">🤔</div>
+          <div class="diag-texto" id="diag-texto">Analisando...</div>
+        </div>
+      </div>
+
+      <!-- Resumo de categorias -->
+      <div class="resumo-cats" id="resumo-cats"></div>
+
+      <!-- Grid dicas + pontos fortes -->
+      <div class="dicas-layout">
+        <div>
+          <h2 class="section-title">⚠️ Onde melhorar</h2>
+          <div id="dicas-list"></div>
+        </div>
+        <div>
+          <h2 class="section-title">✅ Pontos fortes</h2>
+          <div id="pontos-list"></div>
+          <!-- Economia potencial -->
+          <div class="economia-card" id="economia-card" style="display:none">
+            <div class="eco-icon">💸</div>
+            <div class="eco-info">
+              <div class="eco-lbl">Potencial de economia</div>
+              <div class="eco-val" id="eco-val">R$ 0,00</div>
+              <div class="eco-sub">seguindo todas as sugestões</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparativo com metas -->
+      <div class="card mt">
+        <div class="card-head"><h3>📊 Seus gastos vs. boas práticas</h3></div>
+        <div class="metas-table" id="metas-table"></div>
+      </div>
+    </div>
+
+    <!-- ═══ CARTÕES ═══ -->
+    <div class="view" id="v-cartoes">
+      <div class="view-head">
+        <h1>Cartões de Crédito</h1>
+        <button class="btn-primary" onclick="openModal('cartao')">+ Novo Cartão</button>
+      </div>
+      <div class="cards-grid" id="cards-grid"></div>
+      <div class="card mt" id="cards-resumo" style="display:none">
+        <div class="card-head"><h3>Resumo Geral</h3></div>
+        <div class="resumo-row" id="cards-resumo-row"></div>
+      </div>
+    </div>
+
+    <!-- ═══ DESPESAS ═══ -->
+    <div class="view" id="v-despesas">
+      <div class="view-head">
+        <h1>Despesas</h1>
+        <button class="btn-primary" onclick="openModal('despesa')">+ Adicionar</button>
+      </div>
+      <div class="filters">
+        <input type="text" id="busca" placeholder="🔍 Buscar..." class="filter-input" oninput="filtrarDespesas()">
+        <select id="f-cat" class="filter-sel" onchange="filtrarDespesas()">
+          <option value="">Todas as categorias</option>
+        </select>
+        <select id="f-forma" class="filter-sel" onchange="filtrarDespesas()">
+          <option value="">Todas as formas</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="debito">Débito</option>
+          <option value="credito">Crédito</option>
+          <option value="parcelado">Parcelado</option>
+        </select>
+        <div class="filter-total" id="filter-total"></div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr>
+            <th>Descrição</th><th>Categoria</th><th>Data</th>
+            <th>Pagamento</th><th>Valor</th><th></th>
+          </tr></thead>
+          <tbody id="desp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ CONTAS FIXAS ═══ -->
+    <div class="view" id="v-contas">
+      <div class="view-head">
+        <h1>Contas Fixas</h1>
+        <button class="btn-primary" onclick="openModal('conta')">+ Nova Conta</button>
+      </div>
+      <div class="contas-grid" id="contas-grid"></div>
+    </div>
+
+    <!-- ═══ HISTÓRICO ═══ -->
+    <div class="view" id="v-historico">
+      <div class="view-head"><h1>Histórico Financeiro</h1></div>
+      <div class="card">
+        <div class="card-head"><h3>Evolução de gastos — 12 meses</h3></div>
+        <div class="chart-body big"><canvas id="ch-hist"></canvas></div>
+      </div>
+      <div class="hist-cards" id="hist-cards"></div>
+    </div>
+
+    <!-- ═══ PERFIL ═══ -->
+    <div class="view" id="v-perfil">
+      <div class="view-head"><h1>Perfil Financeiro</h1></div>
+      <div class="perfil-wrap">
+        <div class="card perfil-card">
+          <div class="perfil-av" id="perfil-av">U</div>
+          <div class="form-group">
+            <label>Nome</label>
+            <input type="text" id="p-nome" class="form-input" placeholder="Seu nome">
+          </div>
+          <div class="form-row2">
+            <div class="form-group">
+              <label>Salário mensal</label>
+              <input type="number" id="p-sal" class="form-input" placeholder="0,00" min="0" step="100">
+            </div>
+            <div class="form-group">
+              <label>Outras rendas</label>
+              <input type="number" id="p-out" class="form-input" placeholder="0,00" min="0" step="100">
+            </div>
+          </div>
+          <div class="form-row2">
+            <div class="form-group">
+              <label>Dia de pagamento</label>
+              <input type="number" id="p-dia" class="form-input" placeholder="5" min="1" max="31">
+            </div>
+            <div class="form-group">
+              <label>Renda total</label>
+              <input type="text" id="p-tot" class="form-input readonly" readonly>
+            </div>
+          </div>
+          <button class="btn-primary full" onclick="savePerfil()">Salvar Perfil</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Despesa -->
+<div class="overlay" id="m-despesa" onclick="closeOverlay(event,'m-despesa')">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Nova Despesa</h2>
+      <button class="close-btn" onclick="closeModal('m-despesa')">✕</button>
+    </div>
+    <form onsubmit="saveDespesa(event)">
+      <div class="form-group">
+        <label>Descrição *</label>
+        <input type="text" id="d-nome" class="form-input" required placeholder="Ex: Supermercado Extra">
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Valor *</label>
+          <input type="number" id="d-val" class="form-input" required min="0.01" step="0.01" placeholder="0,00">
+        </div>
+        <div class="form-group">
+          <label>Data *</label>
+          <input type="date" id="d-data" class="form-input" required>
+        </div>
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Categoria *</label>
+          <select id="d-cat" class="form-input" required>
+            <option value="">Selecionar</option>
+            <option>Alimentação</option><option>Moradia</option><option>Transporte</option>
+            <option>Saúde</option><option>Educação</option><option>Lazer</option>
+            <option>Vestuário</option><option>Tecnologia</option><option>Viagem</option>
+            <option>Delivery</option><option>Assinaturas</option><option>Investimento</option>
+            <option>Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Forma *</label>
+          <select id="d-forma" class="form-input" required onchange="onFormaChange()">
+            <option value="">Selecionar</option>
+            <option value="dinheiro">💵 Dinheiro</option>
+            <option value="debito">💳 Débito</option>
+            <option value="credito">💳 Crédito</option>
+            <option value="parcelado">📦 Parcelado</option>
+          </select>
+        </div>
+      </div>
+      <div id="cartao-row" style="display:none" class="form-group">
+        <label>Cartão</label>
+        <select id="d-cartao" class="form-input"></select>
+      </div>
+      <div id="parcela-row" style="display:none" class="form-group">
+        <label>Número de parcelas</label>
+        <input type="number" id="d-parc" class="form-input" min="2" max="60" value="2" placeholder="2">
+      </div>
+      <div class="form-group">
+        <label>Observação</label>
+        <input type="text" id="d-obs" class="form-input" placeholder="Opcional">
+      </div>
+      <button type="submit" class="btn-primary full">Adicionar Despesa</button>
+    </form>
+  </div>
+</div>
+
+<!-- Cartão -->
+<div class="overlay" id="m-cartao" onclick="closeOverlay(event,'m-cartao')">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="m-cartao-title">Novo Cartão</h2>
+      <button class="close-btn" onclick="closeModal('m-cartao')">✕</button>
+    </div>
+    <form onsubmit="saveCartao(event)">
+      <input type="hidden" id="c-id">
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Nome do cartão *</label>
+          <input type="text" id="c-nome" class="form-input" required placeholder="Ex: Nu Ultravioleta">
+        </div>
+        <div class="form-group">
+          <label>Banco *</label>
+          <input type="text" id="c-banco" class="form-input" required placeholder="Ex: Nubank">
+        </div>
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Bandeira</label>
+          <select id="c-band" class="form-input">
+            <option>Mastercard</option><option>Visa</option><option>Elo</option>
+            <option>American Express</option><option>Hipercard</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Limite total *</label>
+          <input type="number" id="c-lim" class="form-input" required min="1" step="100" placeholder="5000">
+        </div>
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Dia de fechamento *</label>
+          <input type="number" id="c-fech" class="form-input" required min="1" max="31" placeholder="25">
+        </div>
+        <div class="form-group">
+          <label>Dia de vencimento *</label>
+          <input type="number" id="c-venc" class="form-input" required min="1" max="31" placeholder="2">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Cor do cartão</label>
+        <div class="color-row" id="color-row">
+          <div class="col-opt sel" data-c="#8B5CF6" style="background:#8B5CF6" onclick="pickColor(this)">✓</div>
+          <div class="col-opt" data-c="#2563EB" style="background:#2563EB" onclick="pickColor(this)"></div>
+          <div class="col-opt" data-c="#059669" style="background:#059669" onclick="pickColor(this)"></div>
+          <div class="col-opt" data-c="#DC2626" style="background:#DC2626" onclick="pickColor(this)"></div>
+          <div class="col-opt" data-c="#D97706" style="background:#D97706" onclick="pickColor(this)"></div>
+          <div class="col-opt" data-c="#0891B2" style="background:#0891B2" onclick="pickColor(this)"></div>
+          <div class="col-opt" data-c="#BE185D" style="background:#BE185D" onclick="pickColor(this)"></div>
+          <div class="col-opt" data-c="#1D4ED8" style="background:#1D4ED8" onclick="pickColor(this)"></div>
+        </div>
+        <input type="hidden" id="c-cor" value="#8B5CF6">
+      </div>
+      <button type="submit" class="btn-primary full">Salvar Cartão</button>
+    </form>
+  </div>
+</div>
+
+<!-- Conta Fixa -->
+<div class="overlay" id="m-conta" onclick="closeOverlay(event,'m-conta')">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="m-conta-title">Nova Conta Fixa</h2>
+      <button class="close-btn" onclick="closeModal('m-conta')">✕</button>
+    </div>
+    <form onsubmit="saveConta(event)">
+      <input type="hidden" id="cf-id">
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" id="cf-nome" class="form-input" required placeholder="Ex: Aluguel">
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Valor *</label>
+          <input type="number" id="cf-val" class="form-input" required min="1" step="10" placeholder="0,00">
+        </div>
+        <div class="form-group">
+          <label>Dia de vencimento *</label>
+          <input type="number" id="cf-dia" class="form-input" required min="1" max="31" placeholder="10">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="cf-cat" class="form-input">
+          <option>Moradia</option><option>Educação</option><option>Saúde</option>
+          <option>Tecnologia</option><option>Transporte</option><option>Assinaturas</option><option>Outros</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-primary full">Salvar Conta</button>
+    </form>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script src="app-v2.js"></script>
+</body>
+</html>

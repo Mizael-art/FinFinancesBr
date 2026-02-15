@@ -1,0 +1,596 @@
+/* FinFinance v2.0 — Mobile First & Bottom Navigation */
+
+/* ══════════════════════════════════════════════
+   BOTTOM NAVIGATION (Mobile)
+   ══════════════════════════════════════════════ */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 65px;
+  background: var(--surf);
+  border-top: 1px solid var(--bdr);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px 8px;
+  z-index: 400;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--trans);
+  text-decoration: none;
+  color: var(--txt3);
+  font-size: 0.7rem;
+  font-weight: 500;
+  min-width: 60px;
+  position: relative;
+}
+
+.bottom-nav-item .icon {
+  font-size: 1.4rem;
+  transition: transform var(--trans);
+}
+
+.bottom-nav-item.active {
+  background: var(--glow2);
+  color: var(--acc);
+}
+
+.bottom-nav-item.active .icon {
+  transform: translateY(-2px);
+}
+
+.bottom-nav-item:active {
+  transform: scale(0.95);
+}
+
+/* Badge de notificação */
+.bottom-nav-item .badge {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: var(--v-red);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* ══════════════════════════════════════════════
+   LAYOUT MOBILE PRINCIPAL
+   ══════════════════════════════════════════════ */
+
+.mobile-container {
+  padding-bottom: 80px; /* Espaço para bottom nav */
+}
+
+/* Esconder sidebar no mobile */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+  
+  .main {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .topbar {
+    display: none; /* Esconder topbar antiga no mobile */
+  }
+  
+  .bottom-nav {
+    display: flex; /* Mostrar bottom nav */
+  }
+}
+
+@media (min-width: 769px) {
+  .bottom-nav {
+    display: none; /* Esconder bottom nav no desktop */
+  }
+  
+  .mobile-container {
+    padding-bottom: 2rem; /* Sem espaço extra no desktop */
+  }
+}
+
+/* ══════════════════════════════════════════════
+   MOBILE HOME (Tela Inicial Redesenhada)
+   ══════════════════════════════════════════════ */
+
+.mobile-home {
+  padding: 1rem;
+}
+
+.mobile-header {
+  margin-bottom: 1.5rem;
+}
+
+.mobile-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.mobile-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.mobile-logo-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.mobile-greeting {
+  font-size: 0.9rem;
+  color: var(--txt2);
+  margin-bottom: 0.25rem;
+}
+
+.mobile-username {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--txt);
+}
+
+/* Cards de Resumo Mobile */
+.mobile-summary-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.mobile-summary-card {
+  background: var(--surf);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-lg);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-summary-card.highlight {
+  background: linear-gradient(135deg, var(--primary-deep), var(--primary-dark));
+  border-color: var(--primary);
+}
+
+.mobile-summary-card-left .label {
+  font-size: 0.75rem;
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.mobile-summary-card.highlight .label {
+  color: rgba(255,255,255,0.7);
+}
+
+.mobile-summary-card-left .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--txt);
+}
+
+.mobile-summary-card.highlight .value {
+  color: white;
+}
+
+.mobile-summary-card-right {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.mobile-summary-card.positive .value {
+  color: var(--v-green);
+}
+
+.mobile-summary-card.negative .value {
+  color: var(--v-red);
+}
+
+/* Resumo Rápido (3 cards pequenos) */
+.mobile-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.mobile-quick-stat {
+  background: var(--surf);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r);
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+}
+
+.mobile-quick-stat .label {
+  font-size: 0.65rem;
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 0.3rem;
+}
+
+.mobile-quick-stat .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--acc);
+}
+
+/* Categorias Mobile */
+.mobile-categories {
+  margin-bottom: 1.5rem;
+}
+
+.mobile-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--txt2);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-section-title .see-all {
+  font-size: 0.75rem;
+  color: var(--acc);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.mobile-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-category-item {
+  background: var(--surf);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r);
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mobile-category-item .icon {
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glow2);
+  border-radius: 10px;
+}
+
+.mobile-category-item .info {
+  flex: 1;
+}
+
+.mobile-category-item .name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--txt);
+  margin-bottom: 0.15rem;
+}
+
+.mobile-category-item .amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--txt2);
+}
+
+.mobile-category-item .bar {
+  width: 60px;
+  height: 6px;
+  background: var(--bg4);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.mobile-category-item .bar-fill {
+  height: 100%;
+  background: var(--acc);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* Ação Rápida Mobile */
+.mobile-quick-action {
+  position: fixed;
+  bottom: 80px;
+  right: 1rem;
+  z-index: 350;
+}
+
+.mobile-fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px var(--glow);
+  cursor: pointer;
+  transition: all var(--trans);
+}
+
+.mobile-fab:active {
+  transform: scale(0.95);
+}
+
+/* ══════════════════════════════════════════════
+   AJUSTES DE CAMPOS DE FORMULÁRIO (BUG FIX)
+   ══════════════════════════════════════════════ */
+
+/* Correção: aceitar valores exatos em inputs numéricos */
+input[type="number"].form-input {
+  -moz-appearance: textfield;
+}
+
+input[type="number"].form-input::-webkit-inner-spin-button,
+input[type="number"].form-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Melhor experiência em mobile */
+.form-input {
+  font-size: 16px !important; /* Evita zoom no iOS */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* ══════════════════════════════════════════════
+   MODAL MOBILE FRIENDLY
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .modal {
+    width: 95vw;
+    max-height: 85vh;
+    border-radius: var(--r-lg);
+    margin: auto;
+  }
+  
+  .modal-head {
+    position: sticky;
+    top: 0;
+    background: var(--surf);
+    z-index: 10;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--bdr);
+    margin-bottom: 1rem;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CARDS RESPONSIVOS
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .kpi-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .kpi {
+    padding: 1rem;
+  }
+  
+  .kpi-val {
+    font-size: 1.6rem;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   AJUSTES DE PADDING MOBILE
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .view {
+    padding: 1rem;
+  }
+  
+  .view-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .view-head h1 {
+    font-size: 1.5rem;
+  }
+  
+  .view-head .btn-primary {
+    width: 100%;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   TABELAS RESPONSIVAS
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .table {
+    min-width: 600px;
+  }
+  
+  .table td,
+  .table th {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   TOAST MOBILE
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .toast {
+    bottom: 90px; /* Acima do bottom nav */
+    left: 1rem;
+    right: 1rem;
+    transform: translateX(0) translateY(80px);
+    min-width: auto;
+    max-width: none;
+  }
+  
+  .toast.on {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+/* ══════════════════════════════════════════════
+   LOGO PERSONALIZADA
+   ══════════════════════════════════════════════ */
+
+.logo-img {
+  max-width: 120px;
+  max-height: 40px;
+  object-fit: contain;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .logo-img {
+    max-width: 100px;
+    max-height: 36px;
+  }
+}
+
+/* Fallback se não houver logo personalizada */
+.logo-fallback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ══════════════════════════════════════════════
+   MELHORIAS DE TOQUE (Touch)
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  button,
+  .btn-primary,
+  .btn-edit,
+  .btn-del,
+  a {
+    min-height: 44px; /* Tamanho mínimo recomendado para touch */
+    min-width: 44px;
+  }
+  
+  .nav-link,
+  .bottom-nav-item {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   SAFE AREA (iPhone X+)
+   ══════════════════════════════════════════════ */
+
+@supports (padding: max(0px)) {
+  .bottom-nav {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    height: calc(65px + env(safe-area-inset-bottom));
+  }
+  
+  .mobile-container {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  
+  .mobile-quick-action {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  
+  .toast.on {
+    bottom: calc(90px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ANIMAÇÕES MOBILE
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .mobile-summary-card,
+  .mobile-quick-stat,
+  .mobile-category-item {
+    animation: slideUp 0.3s ease forwards;
+    opacity: 0;
+  }
+  
+  .mobile-summary-card:nth-child(1) { animation-delay: 0.05s; }
+  .mobile-summary-card:nth-child(2) { animation-delay: 0.1s; }
+  .mobile-summary-card:nth-child(3) { animation-delay: 0.15s; }
+  
+  .mobile-quick-stat:nth-child(1) { animation-delay: 0.2s; }
+  .mobile-quick-stat:nth-child(2) { animation-delay: 0.25s; }
+  .mobile-quick-stat:nth-child(3) { animation-delay: 0.3s; }
+  
+  .mobile-category-item:nth-child(1) { animation-delay: 0.35s; }
+  .mobile-category-item:nth-child(2) { animation-delay: 0.4s; }
+  .mobile-category-item:nth-child(3) { animation-delay: 0.45s; }
+  .mobile-category-item:nth-child(4) { animation-delay: 0.5s; }
+  .mobile-category-item:nth-child(5) { animation-delay: 0.55s; }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

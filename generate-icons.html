@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head><title>Gerador de Ícones FinFinance</title></head>
+<body>
+<canvas id="canvas192" width="192" height="192"></canvas>
+<canvas id="canvas512" width="512" height="512"></canvas>
+<script>
+function drawIcon(canvas, size) {
+  const ctx = canvas.getContext('2d');
+  
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, '#A78BFA');
+  grad.addColorStop(1, '#4C1D95');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  
+  // Hexágono
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size * 0.35;
+  
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 2;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = size * 0.01;
+  ctx.stroke();
+  
+  // Símbolo + 
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = size * 0.05;
+  ctx.lineCap = 'round';
+  
+  // Linha horizontal
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.5, cy);
+  ctx.lineTo(cx + r * 0.5, cy);
+  ctx.stroke();
+  
+  // Linha vertical
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r * 0.5);
+  ctx.lineTo(cx, cy + r * 0.5);
+  ctx.stroke();
+}
+
+drawIcon(document.getElementById('canvas192'), 192);
+drawIcon(document.getElementById('canvas512'), 512);
+
+// Download
+setTimeout(() => {
+  ['192', '512'].forEach(size => {
+    const canvas = document.getElementById('canvas' + size);
+    const link = document.createElement('a');
+    link.download = `icon-${size}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+}, 100);
+</script>
+</body>
+</html>

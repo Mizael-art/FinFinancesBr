@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>FinFinance - Diagnóstico de Caminhos</title>
+<style>
+  body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+  .ok { color: #0f0; }
+  .err { color: #f00; }
+  pre { background: #000; padding: 10px; border: 1px solid #333; }
+</style>
+</head>
+<body>
+<h1>🔍 Diagnóstico FinFinance</h1>
+<pre id="log"></pre>
+
+<script>
+const log = document.getElementById('log');
+
+function test(msg, fn) {
+  try {
+    const result = fn();
+    log.innerHTML += `<span class="ok">✅ ${msg}: ${result}\n</span>`;
+  } catch(e) {
+    log.innerHTML += `<span class="err">❌ ${msg}: ${e.message}\n</span>`;
+  }
+}
+
+log.innerHTML = 'Iniciando testes...\n\n';
+
+test('URL atual', () => window.location.href);
+test('Base URL', () => document.baseURI);
+test('Caminho', () => window.location.pathname);
+
+// Testar cada arquivo
+const files = ['style.css', 'app.js', 'db.js', 'manifest.json', 'icon-192.png'];
+log.innerHTML += '\n--- Testando arquivos ---\n';
+
+files.forEach(file => {
+  fetch(file)
+    .then(r => {
+      log.innerHTML += `<span class="${r.ok ? 'ok' : 'err'}">${r.ok ? '✅' : '❌'} ${file}: ${r.status}\n</span>`;
+    })
+    .catch(e => {
+      log.innerHTML += `<span class="err">❌ ${file}: ${e.message}\n</span>`;
+    });
+});
+
+// Verificar onde estão os arquivos
+log.innerHTML += '\n--- Possíveis localizações ---\n';
+const base = window.location.origin + window.location.pathname.split('/').slice(0, -1).join('/');
+log.innerHTML += `Base detectada: ${base}\n`;
+log.innerHTML += `Testando: ${base}/style.css\n`;
+</script>
+</body>
+</html>
