@@ -256,34 +256,34 @@ async function finishOnbV2() {
       </div>
 
       <div class="kpi-row">
-        <div class="kpi green">
+        <div class="kpi green kpi-clickable" onclick="goto('perfil',null)" style="cursor:pointer">
           <div class="kpi-top"><span class="kpi-lbl">Renda do mês</span><span class="kpi-icon">↑</span></div>
           <div class="kpi-val" id="k-renda">—</div>
           <div class="kpi-sub" id="k-renda-sub">—</div>
-          <a href="#" class="kpi-detail" onclick="goto('perfil',null);return false;">ver detalhes →</a>
+          <div class="kpi-detail">ver detalhes →</div>
         </div>
-        <div class="kpi red">
+        <div class="kpi red kpi-clickable" onclick="goto('despesas',null)" style="cursor:pointer">
           <div class="kpi-top"><span class="kpi-lbl">Gastos totais</span><span class="kpi-icon">↓</span></div>
           <div class="kpi-val" id="k-gasto">—</div>
           <div class="kpi-sub" id="k-gasto-sub">—</div>
-          <a href="#" class="kpi-detail" onclick="goto('despesas',null);return false;">ver detalhes →</a>
+          <div class="kpi-detail">ver detalhes →</div>
         </div>
-        <div class="kpi purple">
+        <div class="kpi purple kpi-clickable" onclick="goto('historico',null)" style="cursor:pointer">
           <div class="kpi-top"><span class="kpi-lbl">Saldo livre</span><span class="kpi-icon">◈</span></div>
           <div class="kpi-val" id="k-saldo">—</div>
           <div class="kpi-sub">Renda − Gastos</div>
-          <a href="#" class="kpi-detail" onclick="goto('historico',null);return false;">ver detalhes →</a>
+          <div class="kpi-detail">ver detalhes →</div>
         </div>
-        <div class="kpi orange">
+        <div class="kpi orange kpi-clickable" onclick="goto('cartoes',null)" style="cursor:pointer">
           <div class="kpi-top"><span class="kpi-lbl">Faturas crédito</span><span class="kpi-icon">💳</span></div>
           <div class="kpi-val" id="k-cred">—</div>
           <div class="kpi-sub" id="k-cred-sub">—</div>
-          <a href="#" class="kpi-detail" onclick="goto('cartoes',null);return false;">ver detalhes →</a>
+          <div class="kpi-detail">ver detalhes →</div>
         </div>
       </div>
 
       <!-- Score do FinFinance -->
-      <div class="score-banner" id="score-banner" onclick="goto('dicas',null)" style="cursor:pointer">
+      <div class="score-banner" id="score-banner" onclick="goto('dicas',null)" style="cursor:pointer" tabindex="-1">
         <div class="score-left">
           <div class="score-circle" id="score-circle">
             <svg viewBox="0 0 80 80" class="score-svg">

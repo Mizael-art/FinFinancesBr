@@ -504,7 +504,12 @@ body {
 .kpi::after {
   content: ''; position: absolute; inset: 0;
   opacity: 0.04; border-radius: var(--r-lg);
+  pointer-events: none; /* ← Fix: não bloqueia cliques nos filhos */
+  z-index: 0;
 }
+
+/* Garantir que conteúdo do KPI fica acima do ::after */
+.kpi > * { position: relative; z-index: 1; }
 
 .kpi.green::after { background: linear-gradient(135deg, #34D399, transparent); }
 .kpi.red::after { background: linear-gradient(135deg, #F87171, transparent); }
@@ -544,9 +549,12 @@ body {
   position: absolute; right: 0; top: 0; bottom: 0;
   width: 200px;
   background: linear-gradient(90deg, transparent, rgba(139,92,246,0.05));
+  pointer-events: none;
 }
 
 .score-banner:hover { border-color: var(--acc); transform: translateY(-1px); }
+.score-banner:focus { outline: none; }
+.score-banner:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
 
 .score-left { display: flex; align-items: center; gap: 1.25rem; }
 
@@ -1159,7 +1167,8 @@ body {
   margin-top: 0.5rem;
   transition: color var(--trans);
 }
-.kpi-detail:hover { color: var(--acc); }
+.kpi-clickable:hover .kpi-detail { color: var(--acc); }
+.kpi-clickable:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--glow2); }
 
 /* ══ INVESTIMENTOS ══ */
 .inv-grid {
