@@ -142,6 +142,7 @@ function goto(view, el) {
     case 'dicas': loadDicas(); break;
     case 'cartoes': loadCartoesView(); break;
     case 'despesas': loadDespesasView(); break;
+    case 'gastos': loadGastosView(); break;
     case 'contas': loadContasView(); break;
     case 'historico': loadHistorico(); break;
     case 'perfil': loadPerfil(); break;
@@ -834,6 +835,116 @@ async function loadContasView() {
   }).join('');
 }
 
+// ══════════ GASTOS TOTAIS (despesas + contas fixas) ══════════
+let _gastosRaw = []; // {tipo:'despesa'|'fixa', ...campos}
+
+async function loadGastosView() {
+  // Atualizar label do mês
+  const lbl = document.getElementById('gastos-month-lbl');
+  if (lbl) lbl.textContent = `${MESES[S.mes - 1]} ${S.ano}`;
+
+  // Buscar despesas do mês
+  const despesas = await api(`/api/despesas?ano=${S.ano}&mes=${S.mes}`);
+  
+  // Buscar contas fixas (todas — são mensais)
+  const contasFixas = await api('/api/contas-fixas');
+
+  // Montar lista unificada
+  const itensDesp = despesas.map(d => ({ ...d, _tipo: 'despesa' }));
+  const itensFixas = contasFixas.map(c => ({
+    id: c.id,
+    nome: c.nome,
+    valor: c.valor,
+    data: `Dia ${c.dia_vencimento}`,
+    categoria: c.categoria,
+    forma_pagamento: 'fixa',
+    _tipo: 'fixa',
+    observacao: ''
+  }));
+
+  _gastosRaw = [...itensDesp, ...itensFixas];
+
+  // KPIs
+  const totalDesp = despesas.reduce((a, b) => a + b.valor, 0);
+  const totalFixo = contasFixas.reduce((a, b) => a + b.valor, 0);
+  const totalGeral = totalDesp + totalFixo;
+
+  setEl('gt-desp', 'R$ ' + fmt(totalDesp));
+  setEl('gt-desp-n', `${despesas.length} lançamento(s)`);
+  setEl('gt-fixo', 'R$ ' + fmt(totalFixo));
+  setEl('gt-fixo-n', `${contasFixas.length} conta(s) fixa(s)`);
+  setEl('gt-total', 'R$ ' + fmt(totalGeral));
+
+  // Filtro de categorias
+  const cats = [...new Set(_gastosRaw.map(d => d.categoria))].sort();
+  const sel = document.getElementById('gt-cat');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Todas as categorias</option>' +
+      cats.map(c => `<option ${c===cur?'selected':''}>${c}</option>`).join('');
+  }
+
+  renderGastos(_gastosRaw);
+}
+
+function renderGastos(list) {
+  const tbody = document.getElementById('gastos-tbody');
+  const tot = document.getElementById('gt-filter-total');
+  if (!tbody) return;
+
+  const total = list.reduce((a, d) => a + d.valor, 0);
+  if (tot) tot.textContent = `${list.length} registros · Total: R$ ${fmt(total)}`;
+
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--txt3)">Nenhum gasto este mês 🎉</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(d => {
+    const ic = CAT_ICONS[d.categoria] || '📦';
+    const dt = d._tipo === 'fixa'
+      ? `<span style="color:var(--txt3)">${d.data}</span>`
+      : new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR');
+
+    const tipoBadge = d._tipo === 'fixa'
+      ? `<span class="badge" style="background:rgba(251,146,60,0.15);color:#FB923C">📋 Conta Fixa</span>`
+      : formaBadge(d.forma_pagamento);
+
+    const delBtn = d._tipo === 'despesa'
+      ? `<button class="btn-sm btn-del" onclick="delDespesa(${d.id},'${esc(d.nome)}')">✕</button>`
+      : `<button class="btn-sm btn-edit" onclick="goto('contas',document.querySelector('[data-view=contas]'))">✎</button>`;
+
+    return `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:0.55rem">
+          <span>${ic}</span>
+          <div>
+            <div style="font-weight:500">${d.nome}</div>
+            ${d.observacao ? `<div style="font-size:0.7rem;color:var(--txt3)">${d.observacao}</div>` : ''}
+          </div>
+        </div>
+      </td>
+      <td><span class="badge" style="background:rgba(139,92,246,0.15);color:var(--acc2)">${d.categoria}</span></td>
+      <td style="color:var(--txt2);font-size:0.83rem">${dt}</td>
+      <td>${tipoBadge}</td>
+      <td style="font-family:'JetBrains Mono';font-weight:700;color:var(--v-red)">R$ ${fmt(d.valor)}</td>
+      <td>${delBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filtrarGastos() {
+  const q = (document.getElementById('gt-busca')?.value || '').toLowerCase();
+  const cat = document.getElementById('gt-cat')?.value || '';
+  const tipo = document.getElementById('gt-tipo')?.value || '';
+  renderGastos(_gastosRaw.filter(d =>
+    (!q || d.nome.toLowerCase().includes(q)) &&
+    (!cat || d.categoria === cat) &&
+    (!tipo || d._tipo === tipo)
+  ));
+}
+
 // ══════════ HISTÓRICO ══════════
 async function loadHistorico() {
   const hist = await api('/api/historico');
@@ -879,28 +990,45 @@ async function loadHistorico() {
     });
   }
 
-  if (cards) cards.innerHTML = hist.map((m, i) => {
-    const isCurrent = m.ano === hoje.getFullYear() && m.mes === hoje.getMonth() + 1;
-    const prev = hist[i - 1];
-    let diffHtml = '';
-    if (prev && prev.total > 0) {
-      const d = ((m.total - prev.total) / prev.total * 100).toFixed(1);
-      const up = m.total > prev.total;
-      diffHtml = `<div class="hc-diff ${up?'up':'down'}">${up?'↑':'↓'} ${Math.abs(d)}%</div>`;
+  if (cards) {
+    // Montar janela: 1 mês antes do atual + atual + 3 meses depois
+    // hist pode não ter meses futuros; gerar os futuros zerados
+    const todosOsMeses = [];
+    for (let i = -1; i <= 3; i++) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      const label = MESES_BR[m-1] + '/' + String(y).slice(2);
+      const existing = hist.find(h => h.ano === y && h.mes === m);
+      const isCurrent = (i === 0);
+      todosOsMeses.push({ ano: y, mes: m, label, total: existing?.total || 0, isCurrent });
     }
-    return `
-    <div class="hist-card ${isCurrent?'current':''}" onclick="jumpToMonth(${m.ano},${m.mes})">
-      <div class="hc-mes">${m.label}</div>
-      <div class="hc-val" style="color:${m.total>0?'var(--txt)':'var(--txt3)'}">R$ ${fmt(m.total)}</div>
-      ${diffHtml}
-    </div>`;
-  }).join('');
+
+    cards.innerHTML = todosOsMeses.map((m, i) => {
+      const prev = todosOsMeses[i - 1];
+      let diffHtml = '';
+      if (prev && prev.total > 0 && m.total > 0) {
+        const d = ((m.total - prev.total) / prev.total * 100).toFixed(1);
+        const up = m.total >= prev.total;
+        diffHtml = `<div class="hc-diff ${up?'up':'down'}">${up?'↑':'↓'} ${Math.abs(d)}%</div>`;
+      }
+      const futuroBadge = i > 1 ? `<div style="font-size:0.65rem;color:var(--txt3);margin-top:0.2rem">parcelas futuras</div>` : '';
+      return `
+      <div class="hist-card ${m.isCurrent?'current':''}" onclick="jumpToMonth(${m.ano},${m.mes})" style="cursor:pointer" title="Ver Gastos Totais de ${m.label}">
+        <div class="hc-mes">${m.label}${m.isCurrent?' ●':''}</div>
+        <div class="hc-val" style="color:${m.total>0?'var(--txt)':'var(--txt3)'}">R$ ${fmt(m.total)}</div>
+        ${diffHtml}
+        ${futuroBadge}
+        <div style="font-size:0.65rem;color:var(--acc2);margin-top:0.3rem">→ ver gastos</div>
+      </div>`;
+    }).join('');
+  }
 }
 
 function jumpToMonth(ano, mes) {
   S.ano = ano; S.mes = mes;
   updateMonthLabel();
-  goto('dashboard', document.querySelector('[data-view="dashboard"]'));
+  goto('gastos', document.querySelector('[data-view="gastos"]'));
 }
 
 // ══════════ PERFIL ══════════
@@ -1404,22 +1532,33 @@ async function confirmarAporte() {
 }
 
 // ══════════ DETALHE DO CARTÃO (mês a mês) ══════════
-async function verDetalheCartao(cartaoId) {
-  cartaoId = parseInt(cartaoId);
+// Estado interno para navegação no detalhe do cartão
+let _detalheCartaoId = null;
+let _detalheCartaoBaseAno = null;
+let _detalheCartaoBaseMes = null;
 
-  // Buscar cartão — primeiro tenta S.cartoes (já enriquecido), senão busca do DB
+async function verDetalheCartao(cartaoId, baseAno, baseMes) {
+  cartaoId = parseInt(cartaoId);
+  _detalheCartaoId = cartaoId;
+
+  // Mês base = parâmetro ou mês atual do S
+  const anoBase = baseAno || S.ano;
+  const mesBase = baseMes || S.mes;
+  _detalheCartaoBaseAno = anoBase;
+  _detalheCartaoBaseMes = mesBase;
+
+  // Buscar cartão
   let cartao = S.cartoes.find(c => Number(c.id) === cartaoId);
   if (!cartao) {
     const todos = await api('/api/cartoes');
     const base = todos.find(c => Number(c.id) === cartaoId);
     if (!base) { toast('Cartão não encontrado', 'err'); return; }
-    // Enriquecer com fatura do mês atual
-    const dash = await api(`/api/dashboard?ano=${S.ano}&mes=${S.mes}`);
+    const dash = await api(`/api/dashboard?ano=${anoBase}&mes=${mesBase}`);
     const dc = (dash.cartoes || []).find(d => Number(d.id) === cartaoId) || {};
-    cartao = { ...base, fatura: dc.fatura || 0, pct: dc.pct || 0, disponivel: dc.disponivel || base.limite_total };
+    cartao = { ...base, fatura: dc.fatura || 0, pct: dc.pct || 0, total_comprometido: dc.total_comprometido || 0, disponivel: dc.disponivel || base.limite_total };
   }
 
-  // Montar view de detalhe
+  // Montar view
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   let detView = document.getElementById('v-cartao-detalhe');
   if (!detView) {
@@ -1430,22 +1569,26 @@ async function verDetalheCartao(cartaoId) {
   }
   detView.classList.add('active');
 
-  // Coletar últimos 6 meses de despesas neste cartão
-  const hoje = new Date();
+  // Coletar: 1 mês antes + mês base + 3 meses depois
   const mesesData = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+  for (let i = -1; i <= 3; i++) {
+    const d = new Date(anoBase, mesBase - 1 + i, 1);
     const y = d.getFullYear();
     const m = d.getMonth() + 1;
     const despesas = await api(`/api/despesas?ano=${y}&mes=${m}`);
-    const doCartao = despesas.filter(x => x.cartao_id == cartaoId);
+    const doCartao = despesas.filter(x => Number(x.cartao_id) == cartaoId);
     const total = doCartao.reduce((a, b) => a + b.valor, 0);
-    mesesData.push({ ano: y, mes: m, label: MESES_BR[m-1] + '/' + String(y).slice(2), total, despesas: doCartao });
+    const isBase = (y === anoBase && m === mesBase);
+    mesesData.push({ ano: y, mes: m, label: MESES_BR[m-1] + '/' + String(y).slice(2), total, despesas: doCartao, isBase });
   }
 
-  const used = cartao.fatura || 0;
+  const used = cartao.total_comprometido || cartao.fatura || 0;
   const pct = Math.min((used / cartao.limite_total) * 100, 100).toFixed(1);
   const bands = { Mastercard: '⊕', Visa: '◉', Elo: '◈', 'American Express': '✦', Hipercard: '✿' };
+
+  // Calcular mês anterior/próximo para navegação
+  const dPrev = new Date(anoBase, mesBase - 2, 1);
+  const dNext = new Date(anoBase, mesBase, 1);
 
   detView.innerHTML = `
     <div class="view-head">
@@ -1461,29 +1604,36 @@ async function verDetalheCartao(cartaoId) {
       <div class="cc-dots">•••• •••• ••••</div>
       <div class="cc-pbar">
         <div class="cc-pbar-track"><div class="cc-pbar-fill" style="width:${pct}%"></div></div>
-        <div class="cc-pbar-stats"><span>${pct}% do limite</span><span>${cartao.bandeira} ${bands[cartao.bandeira]||'◉'}</span></div>
+        <div class="cc-pbar-stats"><span>${pct}% comprometido</span><span>${cartao.bandeira} ${bands[cartao.bandeira]||'◉'}</span></div>
       </div>
       <div class="cc-footer">
-        <div class="cc-fl"><span class="cc-lbl2">Disponível</span><span class="cc-val2">R$ ${fmt(cartao.limite_total - used)}</span></div>
-        <div class="cc-fl" style="text-align:right"><span class="cc-lbl2">Fatura</span><span class="cc-val2">R$ ${fmt(used)}</span></div>
+        <div class="cc-fl"><span class="cc-lbl2">Disponível</span><span class="cc-val2">R$ ${fmt(cartao.disponivel)}</span></div>
+        <div class="cc-fl" style="text-align:right"><span class="cc-lbl2">Comprometido</span><span class="cc-val2">R$ ${fmt(used)}</span></div>
       </div>
     </div>
 
     <div class="card mt">
-      <div class="card-head"><h3>Gastos mês a mês</h3></div>
+      <div class="card-head">
+        <h3>Gastos mês a mês</h3>
+        <div style="display:flex;align-items:center;gap:0.5rem">
+          <button class="mnav" onclick="verDetalheCartao(${cartaoId},${dPrev.getFullYear()},${dPrev.getMonth()+1})">‹</button>
+          <span style="font-size:0.82rem;color:var(--txt2);min-width:80px;text-align:center">${MESES_BR[mesBase-1]}/${String(anoBase).slice(2)}</span>
+          <button class="mnav" onclick="verDetalheCartao(${cartaoId},${dNext.getFullYear()},${dNext.getMonth()+1})">›</button>
+        </div>
+      </div>
       <div style="padding:1rem">
         ${mesesData.map(md => `
-        <div style="margin-bottom:1.25rem">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
-            <span style="font-weight:600">${md.label}</span>
-            <span style="font-family:'JetBrains Mono';color:var(--v-red);font-weight:700">R$ ${fmt(md.total)}</span>
+        <div style="margin-bottom:1.5rem;${md.isBase ? 'border-left:3px solid '+cartao.cor+';padding-left:0.75rem;' : ''}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem">
+            <span style="font-weight:${md.isBase?'700':'600'};color:${md.isBase?'var(--txt)':'var(--txt2)'};font-size:${md.isBase?'1rem':'0.9rem'}">${md.label}${md.isBase?' ← atual':''}</span>
+            <span style="font-family:'JetBrains Mono';color:${md.total>0?'var(--v-red)':'var(--txt3)'};font-weight:700">R$ ${fmt(md.total)}</span>
           </div>
-          <div style="background:var(--surf2);border-radius:4px;height:4px;margin-bottom:0.5rem">
+          <div style="background:var(--surf2);border-radius:4px;height:4px;margin-bottom:0.6rem">
             <div style="height:4px;border-radius:4px;background:${cartao.cor};width:${Math.min((md.total/cartao.limite_total)*100,100)}%"></div>
           </div>
           ${md.despesas.length
             ? md.despesas.map(dx => `
-              <div class="tx-row" style="padding:0.4rem 0">
+              <div class="tx-row" style="padding:0.4rem 0;border-bottom:1px solid var(--bdr)">
                 <div class="tx-ico" style="background:${CAT_COLORS[dx.categoria]||'rgba(139,92,246,0.1)'}">${CAT_ICONS[dx.categoria]||'📦'}</div>
                 <div class="tx-inf">
                   <div class="tx-nm">${dx.nome}</div>
@@ -1494,7 +1644,7 @@ async function verDetalheCartao(cartaoId) {
                   <div class="tx-dt">${new Date(dx.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</div>
                 </div>
               </div>`).join('')
-            : '<div style="color:var(--txt3);font-size:0.82rem;padding:0.25rem 0">Nenhuma despesa</div>'
+            : `<div style="color:var(--txt3);font-size:0.82rem;padding:0.25rem 0">Nenhuma despesa neste mês</div>`
           }
         </div>`).join('')}
       </div>

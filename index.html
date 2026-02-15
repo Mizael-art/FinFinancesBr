@@ -195,6 +195,9 @@ async function finishOnbV2() {
         <a class="nav-link" data-view="despesas" href="#" onclick="goto('despesas',this)">
           <i class="ni">↕</i><span>Despesas</span>
         </a>
+        <a class="nav-link" data-view="gastos" href="#" onclick="goto('gastos',this)">
+          <i class="ni">💸</i><span>Gastos Totais</span>
+        </a>
         <a class="nav-link" data-view="contas" href="#" onclick="goto('contas',this)">
           <i class="ni">⊗</i><span>Contas Fixas</span>
         </a>
@@ -262,7 +265,7 @@ async function finishOnbV2() {
           <div class="kpi-sub" id="k-renda-sub">—</div>
           <div class="kpi-detail">ver detalhes →</div>
         </div>
-        <div class="kpi red kpi-clickable" onclick="goto('despesas',null)" style="cursor:pointer">
+        <div class="kpi red kpi-clickable" onclick="goto('gastos',null)" style="cursor:pointer">
           <div class="kpi-top"><span class="kpi-lbl">Gastos totais</span><span class="kpi-icon">↓</span></div>
           <div class="kpi-val" id="k-gasto">—</div>
           <div class="kpi-sub" id="k-gasto-sub">—</div>
@@ -465,6 +468,50 @@ async function finishOnbV2() {
             <th>Pagamento</th><th>Valor</th><th></th>
           </tr></thead>
           <tbody id="desp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ GASTOS TOTAIS ═══ -->
+    <div class="view" id="v-gastos">
+      <div class="view-head">
+        <h1>💸 Gastos Totais</h1>
+        <button class="btn-primary" onclick="openModal('despesa')">+ Adicionar</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;color:var(--txt2);font-size:0.88rem">
+        <span>📅 Mês:</span>
+        <div style="display:flex;align-items:center;gap:0.5rem;background:var(--surf2);border-radius:8px;padding:0.35rem 0.75rem">
+          <button class="mnav" onclick="changeMonth(-1)" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--txt2)">‹</button>
+          <span id="gastos-month-lbl" style="font-weight:600;color:var(--txt);min-width:120px;text-align:center"></span>
+          <button class="mnav" onclick="changeMonth(1)" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--txt2)">›</button>
+        </div>
+      </div>
+      <!-- KPIs resumo -->
+      <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.25rem" id="gastos-kpis">
+        <div class="kpi red"><div class="kpi-top"><span class="kpi-lbl">Despesas</span><span class="kpi-icon">🧾</span></div><div class="kpi-val" id="gt-desp">—</div><div class="kpi-sub" id="gt-desp-n">—</div></div>
+        <div class="kpi orange"><div class="kpi-top"><span class="kpi-lbl">Contas fixas</span><span class="kpi-icon">📋</span></div><div class="kpi-val" id="gt-fixo">—</div><div class="kpi-sub" id="gt-fixo-n">—</div></div>
+        <div class="kpi purple"><div class="kpi-top"><span class="kpi-lbl">Total geral</span><span class="kpi-icon">Σ</span></div><div class="kpi-val" id="gt-total">—</div><div class="kpi-sub">do mês</div></div>
+      </div>
+      <!-- Filtros -->
+      <div class="filters">
+        <input type="text" id="gt-busca" placeholder="🔍 Buscar..." class="filter-input" oninput="filtrarGastos()">
+        <select id="gt-cat" class="filter-sel" onchange="filtrarGastos()">
+          <option value="">Todas as categorias</option>
+        </select>
+        <select id="gt-tipo" class="filter-sel" onchange="filtrarGastos()">
+          <option value="">Todos os tipos</option>
+          <option value="despesa">Despesas</option>
+          <option value="fixa">Contas Fixas</option>
+        </select>
+        <div class="filter-total" id="gt-filter-total"></div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr>
+            <th>Descrição</th><th>Categoria</th><th>Data / Venc.</th>
+            <th>Tipo</th><th>Valor</th><th></th>
+          </tr></thead>
+          <tbody id="gastos-tbody"></tbody>
         </table>
       </div>
     </div>
