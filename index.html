@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR" data-theme="dark" data-tema-cor="roxo" data-tema-modo="escuro">
 <head>
 <base href="./">
 <meta charset="UTF-8">
@@ -201,6 +201,9 @@ async function finishOnbV2() {
         <a class="nav-link" data-view="historico" href="#" onclick="goto('historico',this)">
           <i class="ni">◎</i><span>Histórico</span>
         </a>
+        <a class="nav-link" data-view="investimentos" href="#" onclick="goto('investimentos',this)">
+          <i class="ni">📈</i><span>Investimentos</span>
+        </a>
       </nav>
     </div>
     <div class="sidebar-foot">
@@ -257,21 +260,25 @@ async function finishOnbV2() {
           <div class="kpi-top"><span class="kpi-lbl">Renda do mês</span><span class="kpi-icon">↑</span></div>
           <div class="kpi-val" id="k-renda">—</div>
           <div class="kpi-sub" id="k-renda-sub">—</div>
+          <a href="#" class="kpi-detail" onclick="goto('perfil',null);return false;">ver detalhes →</a>
         </div>
         <div class="kpi red">
           <div class="kpi-top"><span class="kpi-lbl">Gastos totais</span><span class="kpi-icon">↓</span></div>
           <div class="kpi-val" id="k-gasto">—</div>
           <div class="kpi-sub" id="k-gasto-sub">—</div>
+          <a href="#" class="kpi-detail" onclick="goto('despesas',null);return false;">ver detalhes →</a>
         </div>
         <div class="kpi purple">
           <div class="kpi-top"><span class="kpi-lbl">Saldo livre</span><span class="kpi-icon">◈</span></div>
           <div class="kpi-val" id="k-saldo">—</div>
           <div class="kpi-sub">Renda − Gastos</div>
+          <a href="#" class="kpi-detail" onclick="goto('historico',null);return false;">ver detalhes →</a>
         </div>
         <div class="kpi orange">
           <div class="kpi-top"><span class="kpi-lbl">Faturas crédito</span><span class="kpi-icon">💳</span></div>
           <div class="kpi-val" id="k-cred">—</div>
           <div class="kpi-sub" id="k-cred-sub">—</div>
+          <a href="#" class="kpi-detail" onclick="goto('cartoes',null);return false;">ver detalhes →</a>
         </div>
       </div>
 
@@ -429,6 +436,14 @@ async function finishOnbV2() {
         <h1>Despesas</h1>
         <button class="btn-primary" onclick="openModal('despesa')">+ Adicionar</button>
       </div>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;color:var(--txt2);font-size:0.88rem">
+        <span>📅 Exibindo:</span>
+        <div style="display:flex;align-items:center;gap:0.5rem;background:var(--surf2);border-radius:8px;padding:0.35rem 0.75rem">
+          <button class="mnav" onclick="changeMonth(-1)" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--txt2)">‹</button>
+          <span id="desp-month-lbl" style="font-weight:600;color:var(--txt);min-width:120px;text-align:center"></span>
+          <button class="mnav" onclick="changeMonth(1)" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--txt2)">›</button>
+        </div>
+      </div>
       <div class="filters">
         <input type="text" id="busca" placeholder="🔍 Buscar..." class="filter-input" oninput="filtrarDespesas()">
         <select id="f-cat" class="filter-sel" onchange="filtrarDespesas()">
@@ -504,11 +519,50 @@ async function finishOnbV2() {
             </div>
           </div>
           <button class="btn-primary full" onclick="savePerfil()">Salvar Perfil</button>
+          
+          <!-- Tema no perfil desktop -->
+          <div class="perfil-tema-section" id="perfil-tema-section">
+            <label>🎨 Cor do tema</label>
+            <div class="perfil-tema-cores" id="perfil-tema-cores"></div>
+            <label>Modo</label>
+            <div class="perfil-tema-modos" id="perfil-tema-modos"></div>
+          </div>
         </div>
       </div>
     </div>
 
-  </div><!-- /main -->
+    <!-- ═══ INVESTIMENTOS ═══ -->
+    <div class="view" id="v-investimentos">
+      <div class="view-head">
+        <h1>📈 Investimentos</h1>
+        <button class="btn-primary" onclick="openModalInvestimento()">+ Novo Investimento</button>
+      </div>
+
+      <!-- KPIs investimentos -->
+      <div class="kpi-row" id="inv-kpis">
+        <div class="kpi green">
+          <div class="kpi-top"><span class="kpi-lbl">Patrimônio total</span><span class="kpi-icon">💰</span></div>
+          <div class="kpi-val" id="inv-patrimonio">R$ 0,00</div>
+          <div class="kpi-sub">Valor atual</div>
+        </div>
+        <div class="kpi purple">
+          <div class="kpi-top"><span class="kpi-lbl">Total investido</span><span class="kpi-icon">📥</span></div>
+          <div class="kpi-val" id="inv-aportado">R$ 0,00</div>
+          <div class="kpi-sub">Soma de aportes</div>
+        </div>
+        <div class="kpi orange">
+          <div class="kpi-top"><span class="kpi-lbl">Rentabilidade</span><span class="kpi-icon">↑</span></div>
+          <div class="kpi-val" id="inv-rent">0%</div>
+          <div class="kpi-sub" id="inv-rent-sub">Ganho/Perda</div>
+        </div>
+      </div>
+
+      <div class="inv-grid" id="inv-grid">
+        <div class="empty"><div class="empty-ico">📈</div><p>Nenhum investimento cadastrado</p></div>
+      </div>
+    </div>
+
+    </div><!-- /main -->
 </div><!-- /app -->
 
 <!-- ═══ MODALS ═══ -->
@@ -668,6 +722,73 @@ async function finishOnbV2() {
       </div>
       <button type="submit" class="btn-primary full">Salvar Conta</button>
     </form>
+  </div>
+</div>
+
+<!-- Investimento -->
+<div class="overlay" id="m-investimento" onclick="closeOverlay(event,'m-investimento')">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="m-inv-title">Novo Investimento</h2>
+      <button class="close-btn" onclick="closeModal('m-investimento')">✕</button>
+    </div>
+    <form onsubmit="saveInvestimento(event)">
+      <input type="hidden" id="inv-id">
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" id="inv-nome" class="form-input" required placeholder="Ex: Tesouro Direto, Nubank CDB...">
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Tipo *</label>
+          <select id="inv-tipo" class="form-input" required>
+            <option value="">Selecionar</option>
+            <option value="renda_fixa">Renda Fixa</option>
+            <option value="renda_variavel">Renda Variável</option>
+            <option value="fii">FII</option>
+            <option value="criptomoeda">Criptomoeda</option>
+            <option value="previdencia">Previdência</option>
+            <option value="poupanca">Poupança</option>
+            <option value="outros">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Valor investido *</label>
+          <input type="number" id="inv-aportado" class="form-input" required min="0.01" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Valor atual</label>
+          <input type="number" id="inv-atual" class="form-input" min="0" step="0.01" placeholder="Deixe vazio se igual">
+        </div>
+        <div class="form-group">
+          <label>Rentabilidade esperada</label>
+          <input type="text" id="inv-rent-info" class="form-input" placeholder="Ex: CDI 100%, 12% a.a.">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Observação</label>
+        <input type="text" id="inv-obs" class="form-input" placeholder="Opcional">
+      </div>
+      <button type="submit" class="btn-primary full">Salvar Investimento</button>
+    </form>
+  </div>
+</div>
+
+<!-- Aporte -->
+<div class="overlay" id="m-aporte" onclick="closeOverlay(event,'m-aporte')">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Adicionar Aporte</h2>
+      <button class="close-btn" onclick="closeModal('m-aporte')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Valor do aporte *</label>
+      <input type="number" id="aporte-val" class="form-input" min="0.01" step="0.01" placeholder="0,00">
+    </div>
+    <input type="hidden" id="aporte-inv-id">
+    <button class="btn-primary full" onclick="confirmarAporte()">Confirmar Aporte</button>
   </div>
 </div>
 

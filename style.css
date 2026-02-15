@@ -1149,3 +1149,137 @@ body {
   .nav-badge { display: none; }
   .view { padding: 1rem; }
 }
+
+/* ══ KPI DETAIL LINK ══ */
+.kpi-detail {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--txt3);
+  text-decoration: none;
+  margin-top: 0.5rem;
+  transition: color var(--trans);
+}
+.kpi-detail:hover { color: var(--acc); }
+
+/* ══ INVESTIMENTOS ══ */
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.inv-card {
+  background: var(--surf);
+  border: 1px solid var(--bdr);
+  border-radius: var(--rad);
+  padding: 1.25rem;
+  transition: box-shadow var(--trans);
+}
+.inv-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.12); }
+
+.inv-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.inv-icon {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.inv-info { flex: 1; min-width: 0; }
+.inv-nome { font-weight: 700; font-size: 0.95rem; color: var(--txt); }
+.inv-tipo-lbl { font-size: 0.75rem; color: var(--txt3); margin-top: 0.15rem; }
+
+.inv-actions { display: flex; gap: 0.3rem; flex-shrink: 0; }
+
+.inv-valores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.inv-val-item { text-align: center; }
+.inv-val-lbl { font-size: 0.68rem; color: var(--txt3); margin-bottom: 0.2rem; }
+.inv-val-num { font-size: 0.82rem; font-weight: 700; font-family: 'JetBrains Mono'; }
+
+.inv-bar-wrap {
+  height: 5px;
+  background: var(--surf2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+.inv-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+/* ══ TEMA DESKTOP (sidebar toggle) ══ */
+.theme-btn {
+  background: var(--surf2);
+  border: 1px solid var(--bdr);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--txt2);
+  transition: all var(--trans);
+}
+.theme-btn:hover { background: var(--surf3); color: var(--txt); }
+
+/* ══ CONFIGS DESKTOP ══ */
+.v-config-desktop .tema-selector {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.v-config-desktop .modo-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* ══ APORTE MODAL ══ */
+#m-aporte .modal { max-width: 380px; }
+
+/* ══ CORES CONFIG NO PERFIL ══ */
+.perfil-tema-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--bdr);
+}
+.perfil-tema-section label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--txt2); font-size: 0.82rem; }
+.perfil-tema-cores {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.perfil-tema-cor-btn {
+  height: 44px; border-radius: 10px; border: 2px solid transparent;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; color: white; font-weight: 700;
+  transition: border-color var(--trans), transform var(--trans);
+}
+.perfil-tema-cor-btn.active,
+.perfil-tema-cor-btn:hover { border-color: rgba(255,255,255,0.7); transform: scale(1.05); }
+.perfil-tema-modos {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+}
+.perfil-tema-modo-btn {
+  padding: 0.65rem; border-radius: 10px;
+  border: 2px solid var(--bdr); background: var(--surf2);
+  cursor: pointer; text-align: center; font-weight: 600;
+  color: var(--txt); transition: all var(--trans);
+}
+.perfil-tema-modo-btn.active { border-color: var(--acc); background: rgba(139,92,246,0.12); }

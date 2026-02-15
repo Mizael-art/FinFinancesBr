@@ -21,7 +21,18 @@ async function aplicarTema() {
   document.documentElement.setAttribute('data-tema-modo', modo);
   
   // Manter compatibilidade com código antigo
-  document.documentElement.setAttribute('data-theme', modo === 'escuro' ? 'dark' : 'light');
+  const dataTheme = modo === 'escuro' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', dataTheme);
+  
+  // Sincronizar state global
+  if (typeof S !== 'undefined') {
+    S.tema = dataTheme;
+    localStorage.setItem('ff-tema', dataTheme);
+  }
+  
+  // Atualizar ícone do botão de tema
+  const icon = document.getElementById('tema-icon');
+  if (icon) icon.textContent = dataTheme === 'dark' ? '☀' : '🌙';
 }
 
 async function mudarTema(cor, modo) {
@@ -51,10 +62,9 @@ function criarBottomNav() {
       <div class="icon">💳</div>
       <span>Cartões</span>
     </a>
-    <a href="#" class="bottom-nav-item" data-view="dicas" onclick="gotoMobile('dicas', this); return false;">
-      <div class="icon">📊</div>
-      <span>Análise</span>
-      <span class="badge" id="bottom-score-badge" style="display:none"></span>
+    <a href="#" class="bottom-nav-item" data-view="investimentos" onclick="gotoMobile('investimentos', this); return false;">
+      <div class="icon">📈</div>
+      <span>Investir</span>
     </a>
     <a href="#" class="bottom-nav-item" data-view="despesas" onclick="gotoMobile('despesas', this); return false;">
       <div class="icon">🧾</div>

@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'FinFinanceDB';
-const DB_VERSION = 2; // ← Atualizado para v2
+const DB_VERSION = 3; // ← v3: Investimentos
 let db = null;
 
 // ══════════════════════════════════════════════
@@ -86,6 +86,13 @@ async function initDB() {
       if (!db.objectStoreNames.contains('alertas')) {
         const alertasStore = db.createObjectStore('alertas', { keyPath: 'id', autoIncrement: true });
         alertasStore.createIndex('lido', 'lido', { unique: false });
+      }
+      
+      // Investimentos (v3)
+      if (!db.objectStoreNames.contains('investimentos')) {
+        const invStore = db.createObjectStore('investimentos', { keyPath: 'id', autoIncrement: true });
+        invStore.createIndex('ativo', 'ativo', { unique: false });
+        invStore.createIndex('tipo', 'tipo', { unique: false });
       }
     };
   });
@@ -552,9 +559,9 @@ window.DB = {
       por_categoria[d.categoria] = (por_categoria[d.categoria] || 0) + d.valor;
     });
     
-    const por_cat = Object.entries(por_categoria).map(([categoria, total]) => ({
-      categoria,
-      t: total
+    const por_cat = Object.entries(por_categoria).map(([cat, total]) => ({
+      cat,
+      total
     }));
     
     const total_gasto = despesasMes.reduce((a, b) => a + b.valor, 0);
@@ -623,7 +630,11 @@ window.DB = {
       total_fixo: Math.round(total_fixo * 100) / 100,
       historico,
       alertas: alertas.slice(0, 15),
-      total_credito: Math.round(total_credito * 100) / 100
+      total_credito: Math.round(total_credito * 100) / 100,
+      historico_renda: (() => {
+        const rendaMensal = (profile.salario || 0) + (profile.outras_rendas || 0);
+        return historico.map(h => ({ label: h.label, total: rendaMensal }));
+      })()
     };
   },
   
@@ -845,5 +856,41 @@ window.DB = {
   getTotalGanhosExtras: async () => {
     const ganhos = await getAll('ganhos_extras', 'ativo', 1);
     return ganhos.reduce((total, g) => total + (g.valor || 0), 0);
+  },
+  
+  // Investimentos (v3)
+  getInvestimentos: async () => {
+    return await getAll('investimentos', 'ativo', 1);
+  },
+  
+  addInvestimento: async (data) => {
+    await add('investimentos', {
+      ...data,
+      ativo: 1,
+      created_at: new Date().toISOString()
+    });
+    return { ok: true };
+  },
+  
+  updateInvestimento: async (id, data) => {
+    const inv = await getOne('investimentos', id);
+    await update('investimentos', { ...inv, ...data, id });
+    return { ok: true };
+  },
+  
+  deleteInvestimento: async (id) => {
+    const inv = await getOne('investimentos', id);
+    await update('investimentos', { ...inv, ativo: 0 });
+    return { ok: true };
+  },
+  
+  addAporteInvestimento: async (id, valor) => {
+    const inv = await getOne('investimentos', id);
+    if (!inv) return { ok: false };
+    inv.aportes = inv.aportes || [];
+    inv.aportes.push({ valor, data: new Date().toISOString().split('T')[0] });
+    inv.valor_atual = (inv.valor_atual || 0) + valor;
+    await update('investimentos', inv);
+    return { ok: true };
   }
 };

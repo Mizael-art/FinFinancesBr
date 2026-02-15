@@ -76,8 +76,16 @@ function bootApp(p) {
   document.getElementById('onboarding')?.classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   updateMonthLabel();
+  // Aplicar tema salvo
+  const modo = p.tema_modo || 'escuro';
+  S.tema = modo === 'escuro' ? 'dark' : 'light';
+  applyTema(S.tema);
   loadDashboard();
-  loadCartoes();
+  // loadCartoes é alias seguro (pode não estar na view de cartões ainda)
+}
+
+async function loadCartoes() {
+  S.cartoes = await api('/api/cartoes');
 }
 
 // Onboarding steps
@@ -96,10 +104,17 @@ async function finishOnb() {
 }
 
 // ══════════ TEMA ══════════
-function toggleTema() {
-  S.tema = S.tema === 'dark' ? 'light' : 'dark';
+async function toggleTema() {
+  const profile = await api('/api/profile');
+  const modoAtual = profile.tema_modo || (S.tema === 'dark' ? 'escuro' : 'claro');
+  const novoModo = modoAtual === 'escuro' ? 'claro' : 'escuro';
+  S.tema = novoModo === 'escuro' ? 'dark' : 'light';
   localStorage.setItem('ff-tema', S.tema);
+  await api('/api/profile', 'POST', { ...profile, tema_modo: novoModo });
   applyTema(S.tema);
+  // Atualizar configs se estiver aberta
+  const configView = document.getElementById('v-config');
+  if (configView?.classList.contains('active')) loadConfig();
 }
 
 function applyTema(t) {
@@ -130,6 +145,7 @@ function goto(view, el) {
     case 'contas': loadContasView(); break;
     case 'historico': loadHistorico(); break;
     case 'perfil': loadPerfil(); break;
+    case 'investimentos': loadInvestimentos(); break;
   }
   return false;
 }
@@ -231,6 +247,24 @@ async function api(url, method = 'GET', body = null) {
     // Alertas
     if (url.includes('/api/alertas/limpar')) {
       return await DB.limparAlertas();
+    }
+    
+    // Investimentos
+    if (url.includes('/api/investimentos')) {
+      if (url.includes('/aporte')) {
+        const id = parseInt(url.split('/').slice(-2)[0]);
+        return await DB.addAporteInvestimento(id, body.valor);
+      }
+      if (method === 'POST') return await DB.addInvestimento(body);
+      if (method === 'PUT') {
+        const id = parseInt(url.split('/').pop());
+        return await DB.updateInvestimento(id, body);
+      }
+      if (method === 'DELETE') {
+        const id = parseInt(url.split('/').pop());
+        return await DB.deleteInvestimento(id);
+      }
+      return await DB.getInvestimentos();
     }
     
     return {};
@@ -403,21 +437,41 @@ function drawCharts(d) {
     });
   }
 
-  // BARS — evolução
+  // BARS — evolução (ganhos verde, gastos vermelho)
   const evoCanvas = document.getElementById('ch-evo');
   if (evoCanvas && d.historico?.length) {
     if (CHARTS.evo) CHARTS.evo.destroy();
-    const lastIdx = d.historico.length - 1;
+    const labels = d.historico.map(h => h.label);
+    const gastos = d.historico.map(h => h.total);
+    const renda = (d.historico_renda || []).map(h => h.total);
+    const rendaVal = d.renda || 0;
+    const ganhos = labels.map(() => rendaVal);
+    
     CHARTS.evo = new Chart(evoCanvas, {
       type: 'bar',
       data: {
-        labels: d.historico.map(h => h.label),
-        datasets: [{
-          data: d.historico.map(h => h.total),
-          backgroundColor: d.historico.map((_, i) =>
-            i === lastIdx ? 'rgba(139,92,246,0.9)' : 'rgba(139,92,246,0.28)'),
-          borderRadius: 7, borderSkipped: false
-        }]
+        labels,
+        datasets: [
+          {
+            label: 'Ganhos',
+            data: ganhos,
+            backgroundColor: 'rgba(52,211,153,0.55)',
+            borderColor: 'rgba(52,211,153,0.9)',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            borderSkipped: false
+          },
+          {
+            label: 'Gastos',
+            data: gastos,
+            backgroundColor: gastos.map((_, i) =>
+              i === gastos.length - 1 ? 'rgba(248,113,113,0.9)' : 'rgba(248,113,113,0.5)'),
+            borderColor: 'rgba(248,113,113,0.9)',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            borderSkipped: false
+          }
+        ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -425,8 +479,10 @@ function drawCharts(d) {
           x: { grid: { display: false }, ticks: { font: { size: 10 } } },
           y: { grid: { color: gc }, ticks: { callback: v => 'R$ ' + fmt(v), font: { size: 10 } } }
         },
-        plugins: { legend: { display: false },
-          tooltip: { callbacks: { label: c => ` R$ ${fmt(c.raw)}` } } },
+        plugins: {
+          legend: { display: true, labels: { boxWidth: 10, font: { size: 11 } } },
+          tooltip: { callbacks: { label: c => ` ${c.dataset.label}: R$ ${fmt(c.raw)}` } }
+        },
         animation: { duration: 500 }
       }
     });
@@ -639,6 +695,7 @@ async function loadCartoesView() {
         <div class="cc-stat"><div class="cc-stat-lbl">Fechamento</div><div class="cc-stat-val">Dia ${c.dia_fechamento}</div></div>
         <div class="cc-stat"><div class="cc-stat-lbl">Vencimento</div><div class="cc-stat-val">Dia ${c.dia_vencimento}</div></div>
         <div class="cc-actions">
+          <button class="btn-sm" style="background:rgba(52,211,153,0.15);color:#34D399" onclick="verDetalheCartao(${c.id})">📊 Ver detalhes</button>
           <button class="btn-sm btn-edit" onclick="editCartao(${c.id})">Editar</button>
           <button class="btn-sm btn-del" onclick="delCartao(${c.id},'${esc(c.nome)}')">Remover</button>
         </div>
@@ -661,6 +718,9 @@ async function loadCartoesView() {
 // ══════════ DESPESAS VIEW ══════════
 async function loadDespesasView() {
   despesasRaw = await api(`/api/despesas?ano=${S.ano}&mes=${S.mes}`);
+  // Sincronizar label de mês na view de despesas
+  const lbl = document.getElementById('desp-month-lbl');
+  if (lbl) lbl.textContent = `${MESES[S.mes - 1]} ${S.ano}`;
   renderDespesas(despesasRaw);
   updateCatFilter(despesasRaw);
 }
@@ -836,6 +896,45 @@ async function loadPerfil() {
   ['p-sal','p-out'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', updatePerfilTotal);
   });
+
+  // Renderizar seletor de tema
+  const coresDef = [
+    { key: 'roxo',   bg: 'linear-gradient(135deg,#8B5CF6,#A78BFA)' },
+    { key: 'verde',  bg: 'linear-gradient(135deg,#10B981,#34D399)' },
+    { key: 'vermelho',bg: 'linear-gradient(135deg,#EF4444,#F87171)' },
+    { key: 'branco', bg: 'linear-gradient(135deg,#E4E4E7,#F9FAFB)', textColor: '#18181B' },
+    { key: 'preto',  bg: 'linear-gradient(135deg,#18181B,#09090B)' }
+  ];
+  const coresEl = document.getElementById('perfil-tema-cores');
+  if (coresEl) {
+    coresEl.innerHTML = coresDef.map(c => `
+      <button class="perfil-tema-cor-btn ${(p.tema_cor||'roxo')===c.key?'active':''}"
+        style="background:${c.bg};color:${c.textColor||'white'}"
+        onclick="mudarPerfilTema('cor','${c.key}')">
+        ${(p.tema_cor||'roxo')===c.key ? '✓' : ''}
+      </button>`).join('');
+  }
+  const modosEl = document.getElementById('perfil-tema-modos');
+  if (modosEl) {
+    modosEl.innerHTML = `
+      <button class="perfil-tema-modo-btn ${(p.tema_modo||'escuro')==='claro'?'active':''}" onclick="mudarPerfilTema('modo','claro')">☀️ Claro</button>
+      <button class="perfil-tema-modo-btn ${(p.tema_modo||'escuro')==='escuro'?'active':''}" onclick="mudarPerfilTema('modo','escuro')">🌙 Escuro</button>
+    `;
+  }
+}
+
+async function mudarPerfilTema(tipo, valor) {
+  const p = await api('/api/profile');
+  if (tipo === 'cor') p.tema_cor = valor;
+  else p.tema_modo = valor;
+  await api('/api/profile', 'POST', p);
+  if (typeof aplicarTema === 'function') await aplicarTema();
+  else {
+    const modo = p.tema_modo || 'escuro';
+    applyTema(modo === 'escuro' ? 'dark' : 'light');
+  }
+  loadPerfil();
+  toast('Tema atualizado!', 'ok');
 }
 
 function updatePerfilTotal() {
@@ -1090,4 +1189,247 @@ function darken(hex) {
     const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
     return `rgb(${Math.floor(r*.6)},${Math.floor(g*.6)},${Math.floor(b*.6)})`;
   } catch { return hex; }
+}
+
+// ══════════ INVESTIMENTOS ══════════
+const INV_TIPOS = {
+  renda_fixa: { icon: '🏦', label: 'Renda Fixa', color: '#34D399' },
+  renda_variavel: { icon: '📊', label: 'Renda Variável', color: '#8B5CF6' },
+  fii: { icon: '🏢', label: 'FII', color: '#60A5FA' },
+  criptomoeda: { icon: '₿', label: 'Cripto', color: '#FB923C' },
+  previdencia: { icon: '🛡️', label: 'Previdência', color: '#A78BFA' },
+  poupanca: { icon: '🐷', label: 'Poupança', color: '#34D399' },
+  outros: { icon: '💼', label: 'Outros', color: '#94A3B8' }
+};
+
+async function loadInvestimentos() {
+  const invs = await api('/api/investimentos');
+  const grid = document.getElementById('inv-grid');
+  if (!grid) return;
+
+  // Calcular totais
+  const totalPatrimonio = invs.reduce((a, inv) => a + (inv.valor_atual || inv.valor_aportado || 0), 0);
+  const totalAportado = invs.reduce((a, inv) => a + (inv.valor_aportado || 0), 0);
+  const ganho = totalPatrimonio - totalAportado;
+  const rentPct = totalAportado > 0 ? ((ganho / totalAportado) * 100).toFixed(2) : 0;
+
+  setEl('inv-patrimonio', 'R$ ' + fmt(totalPatrimonio));
+  setEl('inv-aportado', 'R$ ' + fmt(totalAportado));
+  setEl('inv-rent', (ganho >= 0 ? '+' : '') + rentPct + '%');
+  setEl('inv-rent-sub', ganho >= 0
+    ? `+R$ ${fmt(ganho)} de rendimento`
+    : `-R$ ${fmt(Math.abs(ganho))} de perda`);
+
+  const rentEl = document.getElementById('inv-rent');
+  if (rentEl) rentEl.style.color = ganho >= 0 ? 'var(--v-green)' : 'var(--v-red)';
+
+  if (!invs.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-ico">📈</div><p>Nenhum investimento cadastrado</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = invs.map(inv => {
+    const tp = INV_TIPOS[inv.tipo] || INV_TIPOS.outros;
+    const vAtual = inv.valor_atual || inv.valor_aportado || 0;
+    const vAport = inv.valor_aportado || 0;
+    const diff = vAtual - vAport;
+    const diffPct = vAport > 0 ? ((diff / vAport) * 100).toFixed(2) : 0;
+    const pct = Math.min((vAtual / (totalPatrimonio || 1)) * 100, 100).toFixed(1);
+    const aportes = inv.aportes || [];
+
+    return `
+    <div class="inv-card">
+      <div class="inv-card-head">
+        <div class="inv-icon" style="background:${tp.color}22;color:${tp.color}">${tp.icon}</div>
+        <div class="inv-info">
+          <div class="inv-nome">${inv.nome}</div>
+          <div class="inv-tipo-lbl">${tp.label}${inv.rentabilidade_info ? ' · ' + inv.rentabilidade_info : ''}</div>
+        </div>
+        <div class="inv-actions">
+          <button class="btn-sm btn-edit" onclick="abrirAporte(${inv.id})">+ Aporte</button>
+          <button class="btn-sm btn-edit" onclick="editInvestimento(${inv.id})">✎</button>
+          <button class="btn-sm btn-del" onclick="delInvestimento(${inv.id},'${esc(inv.nome)}')">✕</button>
+        </div>
+      </div>
+      <div class="inv-valores">
+        <div class="inv-val-item">
+          <div class="inv-val-lbl">Valor atual</div>
+          <div class="inv-val-num" style="color:var(--v-green)">R$ ${fmt(vAtual)}</div>
+        </div>
+        <div class="inv-val-item">
+          <div class="inv-val-lbl">Investido</div>
+          <div class="inv-val-num">R$ ${fmt(vAport)}</div>
+        </div>
+        <div class="inv-val-item">
+          <div class="inv-val-lbl">Rendimento</div>
+          <div class="inv-val-num" style="color:${diff >= 0 ? 'var(--v-green)' : 'var(--v-red)'}">
+            ${diff >= 0 ? '+' : ''}R$ ${fmt(diff)} (${diffPct}%)
+          </div>
+        </div>
+      </div>
+      <div class="inv-bar-wrap">
+        <div class="inv-bar-fill" style="width:${pct}%;background:${tp.color}"></div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--txt3);margin-top:0.25rem">${pct}% do portfólio · ${aportes.length} aporte(s)</div>
+      ${inv.observacao ? `<div style="font-size:0.78rem;color:var(--txt2);margin-top:0.35rem">📝 ${inv.observacao}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function openModalInvestimento() {
+  setEl('m-inv-title', 'Novo Investimento');
+  ['inv-id','inv-nome','inv-atual','inv-rent-info','inv-obs'].forEach(id => setVal(id,''));
+  setVal('inv-tipo',''); setVal('inv-aportado','');
+  document.getElementById('m-investimento').classList.add('open');
+}
+
+async function editInvestimento(id) {
+  const invs = await api('/api/investimentos');
+  const inv = invs.find(x => x.id === id);
+  if (!inv) return;
+  setEl('m-inv-title','Editar Investimento');
+  setVal('inv-id', inv.id);
+  setVal('inv-nome', inv.nome);
+  setVal('inv-tipo', inv.tipo);
+  setVal('inv-aportado', inv.valor_aportado);
+  setVal('inv-atual', inv.valor_atual || '');
+  setVal('inv-rent-info', inv.rentabilidade_info || '');
+  setVal('inv-obs', inv.observacao || '');
+  document.getElementById('m-investimento').classList.add('open');
+}
+
+async function saveInvestimento(e) {
+  e.preventDefault();
+  const id = getVal('inv-id');
+  const aportado = parseFloat(getVal('inv-aportado'));
+  const atual = parseFloat(getVal('inv-atual')) || aportado;
+  const data = {
+    nome: getVal('inv-nome'),
+    tipo: getVal('inv-tipo'),
+    valor_aportado: aportado,
+    valor_atual: atual,
+    rentabilidade_info: getVal('inv-rent-info'),
+    observacao: getVal('inv-obs'),
+    aportes: id ? undefined : [{ valor: aportado, data: new Date().toISOString().split('T')[0] }]
+  };
+  if (id) {
+    await api(`/api/investimentos/${id}`, 'PUT', data);
+    toast('Investimento atualizado!', 'ok');
+  } else {
+    await api('/api/investimentos', 'POST', data);
+    toast('Investimento adicionado!', 'ok');
+  }
+  closeModal('m-investimento');
+  loadInvestimentos();
+}
+
+async function delInvestimento(id, nome) {
+  if (!confirm(`Remover "${nome}"?`)) return;
+  await api(`/api/investimentos/${id}`, 'DELETE');
+  toast('Investimento removido', 'ok');
+  loadInvestimentos();
+}
+
+function abrirAporte(id) {
+  setVal('aporte-inv-id', id);
+  setVal('aporte-val', '');
+  document.getElementById('m-aporte').classList.add('open');
+}
+
+async function confirmarAporte() {
+  const id = parseInt(getVal('aporte-inv-id'));
+  const valor = parseFloat(getVal('aporte-val'));
+  if (!valor || valor <= 0) { toast('Valor inválido', 'err'); return; }
+  await api(`/api/investimentos/${id}/aporte`, 'POST', { valor });
+  closeModal('m-aporte');
+  toast('Aporte registrado!', 'ok');
+  loadInvestimentos();
+}
+
+// ══════════ DETALHE DO CARTÃO (mês a mês) ══════════
+async function verDetalheCartao(cartaoId) {
+  const cartao = S.cartoes.find(c => c.id === cartaoId);
+  if (!cartao) return;
+
+  // Montar view de detalhe
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  let detView = document.getElementById('v-cartao-detalhe');
+  if (!detView) {
+    detView = document.createElement('div');
+    detView.id = 'v-cartao-detalhe';
+    detView.className = 'view';
+    document.querySelector('.main').appendChild(detView);
+  }
+  detView.classList.add('active');
+
+  // Coletar últimos 6 meses de despesas neste cartão
+  const hoje = new Date();
+  const mesesData = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const despesas = await api(`/api/despesas?ano=${y}&mes=${m}`);
+    const doCartao = despesas.filter(x => x.cartao_id == cartaoId);
+    const total = doCartao.reduce((a, b) => a + b.valor, 0);
+    mesesData.push({ ano: y, mes: m, label: MESES_BR[m-1] + '/' + String(y).slice(2), total, despesas: doCartao });
+  }
+
+  const used = cartao.fatura || 0;
+  const pct = Math.min((used / cartao.limite_total) * 100, 100).toFixed(1);
+  const bands = { Mastercard: '⊕', Visa: '◉', Elo: '◈', 'American Express': '✦', Hipercard: '✿' };
+
+  detView.innerHTML = `
+    <div class="view-head">
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <button class="btn-ghost" onclick="goto('cartoes',document.querySelector('[data-view=cartoes]'))">← Voltar</button>
+        <h1>${cartao.nome}</h1>
+      </div>
+    </div>
+
+    <div class="credit-card" style="background:linear-gradient(140deg,${cartao.cor},${darken(cartao.cor)});max-width:380px;margin-bottom:1.5rem">
+      <div class="cc-bank">${cartao.banco}</div>
+      <div class="cc-name">${cartao.nome}</div>
+      <div class="cc-dots">•••• •••• ••••</div>
+      <div class="cc-pbar">
+        <div class="cc-pbar-track"><div class="cc-pbar-fill" style="width:${pct}%"></div></div>
+        <div class="cc-pbar-stats"><span>${pct}% do limite</span><span>${cartao.bandeira} ${bands[cartao.bandeira]||'◉'}</span></div>
+      </div>
+      <div class="cc-footer">
+        <div class="cc-fl"><span class="cc-lbl2">Disponível</span><span class="cc-val2">R$ ${fmt(cartao.limite_total - used)}</span></div>
+        <div class="cc-fl" style="text-align:right"><span class="cc-lbl2">Fatura</span><span class="cc-val2">R$ ${fmt(used)}</span></div>
+      </div>
+    </div>
+
+    <div class="card mt">
+      <div class="card-head"><h3>Gastos mês a mês</h3></div>
+      <div style="padding:1rem">
+        ${mesesData.map(md => `
+        <div style="margin-bottom:1.25rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+            <span style="font-weight:600">${md.label}</span>
+            <span style="font-family:'JetBrains Mono';color:var(--v-red);font-weight:700">R$ ${fmt(md.total)}</span>
+          </div>
+          <div style="background:var(--surf2);border-radius:4px;height:4px;margin-bottom:0.5rem">
+            <div style="height:4px;border-radius:4px;background:${cartao.cor};width:${Math.min((md.total/cartao.limite_total)*100,100)}%"></div>
+          </div>
+          ${md.despesas.length
+            ? md.despesas.map(dx => `
+              <div class="tx-row" style="padding:0.4rem 0">
+                <div class="tx-ico" style="background:${CAT_COLORS[dx.categoria]||'rgba(139,92,246,0.1)'}">${CAT_ICONS[dx.categoria]||'📦'}</div>
+                <div class="tx-inf">
+                  <div class="tx-nm">${dx.nome}</div>
+                  <div class="tx-meta">${dx.categoria}</div>
+                </div>
+                <div style="text-align:right">
+                  <div class="tx-amt">−R$ ${fmt(dx.valor)}</div>
+                  <div class="tx-dt">${new Date(dx.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</div>
+                </div>
+              </div>`).join('')
+            : '<div style="color:var(--txt3);font-size:0.82rem;padding:0.25rem 0">Nenhuma despesa</div>'
+          }
+        </div>`).join('')}
+      </div>
+    </div>
+  `;
 }
