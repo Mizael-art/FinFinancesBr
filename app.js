@@ -339,13 +339,20 @@ function renderDashCards(cartoes) {
     el.innerHTML = '<div class="empty"><div class="empty-ico">💳</div><p>Nenhum cartão</p></div>';
     return;
   }
-  el.innerHTML = cartoes.map(c => `
+  el.innerHTML = cartoes.map(c => {
+    const comprometido = c.total_comprometido || c.fatura || 0;
+    const disponivel = c.disponivel != null ? c.disponivel : (c.limite_total - comprometido);
+    return `
     <div class="dash-card-row">
       <div class="dcr-dot" style="background:${c.cor}"></div>
       <div class="dcr-name">${c.nome}</div>
       <div class="dcr-pct">${c.pct}%</div>
-      <div class="dcr-val">R$ ${fmt(c.fatura)}</div>
-    </div>`).join('');
+      <div style="text-align:right">
+        <div class="dcr-val">R$ ${fmt(comprometido)}</div>
+        <div style="font-size:0.68rem;color:var(--v-green)">disp. R$ ${fmt(disponivel)}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderDashContas(contas, total) {
@@ -588,11 +595,15 @@ function renderDicasList(dicas) {
 function renderPontosList(pontos) {
   const el = document.getElementById('pontos-list');
   if (!el) return;
-  if (!pontos.length) {
-    el.innerHTML = `<div class="ponto-card" style="color:var(--txt3)">Adicione gastos para ver seus pontos fortes.</div>`;
+  if (!pontos || !pontos.length) {
+    el.innerHTML = `<div class="ponto-card" style="color:var(--txt3)">Continue registrando suas finanças para ver seus pontos fortes aqui.</div>`;
     return;
   }
-  el.innerHTML = pontos.map(p => `<div class="ponto-card">${p.icone} ${p.texto}</div>`).join('');
+  el.innerHTML = pontos.map(p => {
+    // Aceita tanto objeto {icone, texto} quanto string simples
+    if (typeof p === 'string') return `<div class="ponto-card">✅ ${p}</div>`;
+    return `<div class="ponto-card">${p.icone || '✅'} ${p.texto || p}</div>`;
+  }).join('');
 }
 
 function renderMetasTable(cats) {
@@ -659,7 +670,13 @@ async function loadCartoesView() {
 
   const enriched = cartoes.map(c => {
     const dc = dashCards.find(d => d.id === c.id) || {};
-    return { ...c, fatura: dc.fatura || 0, pct: dc.pct || 0, disponivel: dc.disponivel || c.limite_total };
+    return {
+      ...c,
+      fatura: dc.fatura || 0,                                        // parcela deste mês
+      total_comprometido: dc.total_comprometido || dc.fatura || 0,   // total de todas parcelas
+      pct: dc.pct || 0,                                               // % baseado no total comprometido
+      disponivel: dc.disponivel != null ? dc.disponivel : c.limite_total
+    };
   });
 
   // Salvar versão enriquecida para verDetalheCartao usar
@@ -678,7 +695,7 @@ async function loadCartoesView() {
             <div class="cc-pbar-fill" style="width:${Math.min(c.pct,100)}%"></div>
           </div>
           <div class="cc-pbar-stats">
-            <span>${c.pct}% do limite</span>
+            <span>${c.pct}% comprometido</span>
             <span>${c.bandeira} ${bands[c.bandeira] || '◉'}</span>
           </div>
         </div>
@@ -688,14 +705,14 @@ async function loadCartoesView() {
             <span class="cc-val2">R$ ${fmt(c.disponivel)}</span>
           </div>
           <div class="cc-fl" style="text-align:right">
-            <span class="cc-lbl2">Fatura</span>
-            <span class="cc-val2">R$ ${fmt(c.fatura)}</span>
+            <span class="cc-lbl2">Comprometido</span>
+            <span class="cc-val2">R$ ${fmt(c.total_comprometido)}</span>
           </div>
         </div>
       </div>
       <div class="cc-detail">
         <div class="cc-stat"><div class="cc-stat-lbl">Limite total</div><div class="cc-stat-val">R$ ${fmt(c.limite_total)}</div></div>
-        <div class="cc-stat"><div class="cc-stat-lbl">Fechamento</div><div class="cc-stat-val">Dia ${c.dia_fechamento}</div></div>
+        <div class="cc-stat"><div class="cc-stat-lbl">Fatura do mês</div><div class="cc-stat-val" style="color:var(--v-red)">R$ ${fmt(c.fatura)}</div></div>
         <div class="cc-stat"><div class="cc-stat-lbl">Vencimento</div><div class="cc-stat-val">Dia ${c.dia_vencimento}</div></div>
         <div class="cc-actions">
           <button class="btn-sm" style="background:rgba(52,211,153,0.15);color:#34D399" onclick="verDetalheCartao(${c.id})">📊 Ver detalhes</button>
@@ -706,14 +723,14 @@ async function loadCartoesView() {
     </div>`).join('');
 
   const tot = enriched.reduce((a,c) => a + c.limite_total, 0);
-  const totFatura = enriched.reduce((a,c) => a + c.fatura, 0);
+  const totComp = enriched.reduce((a,c) => a + (c.total_comprometido || 0), 0);
   const totDisp = enriched.reduce((a,c) => a + c.disponivel, 0);
   if (res) {
     res.style.display = '';
     const rr = document.getElementById('cards-resumo-row');
     if (rr) rr.innerHTML = `
       <div><div class="resumo-stat-lbl">Limite total</div><div class="resumo-stat-val">R$ ${fmt(tot)}</div></div>
-      <div><div class="resumo-stat-lbl">Total faturas</div><div class="resumo-stat-val" style="color:var(--acc2)">R$ ${fmt(totFatura)}</div></div>
+      <div><div class="resumo-stat-lbl">Comprometido</div><div class="resumo-stat-val" style="color:var(--acc2)">R$ ${fmt(totComp)}</div></div>
       <div><div class="resumo-stat-lbl">Disponível</div><div class="resumo-stat-val" style="color:var(--v-green)">R$ ${fmt(totDisp)}</div></div>`;
   }
 }
@@ -1306,6 +1323,7 @@ async function saveInvestimento(e) {
   const id = getVal('inv-id');
   const aportado = parseFloat(getVal('inv-aportado'));
   const atual = parseFloat(getVal('inv-atual')) || aportado;
+  const hoje = new Date().toISOString().split('T')[0];
   const data = {
     nome: getVal('inv-nome'),
     tipo: getVal('inv-tipo'),
@@ -1313,17 +1331,31 @@ async function saveInvestimento(e) {
     valor_atual: atual,
     rentabilidade_info: getVal('inv-rent-info'),
     observacao: getVal('inv-obs'),
-    aportes: id ? undefined : [{ valor: aportado, data: new Date().toISOString().split('T')[0] }]
+    aportes: id ? undefined : [{ valor: aportado, data: hoje }]
   };
+
   if (id) {
+    // Edição: atualiza só os metadados, não gera nova despesa
     await api(`/api/investimentos/${id}`, 'PUT', data);
     toast('Investimento atualizado!', 'ok');
   } else {
+    // Novo investimento: salva + gera despesa na categoria Investimento
     await api('/api/investimentos', 'POST', data);
-    toast('Investimento adicionado!', 'ok');
+    await api('/api/despesas', 'POST', {
+      nome: `Investimento: ${data.nome}`,
+      valor: aportado,
+      data: hoje,
+      categoria: 'Investimento',
+      forma_pagamento: 'debito',
+      cartao_id: null,
+      parcelas: 1,
+      observacao: data.rentabilidade_info || data.observacao || ''
+    });
+    toast('Investimento adicionado e registrado nos gastos!', 'ok');
   }
   closeModal('m-investimento');
   loadInvestimentos();
+  loadDashboard();
 }
 
 async function delInvestimento(id, nome) {
@@ -1343,10 +1375,32 @@ async function confirmarAporte() {
   const id = parseInt(getVal('aporte-inv-id'));
   const valor = parseFloat(getVal('aporte-val'));
   if (!valor || valor <= 0) { toast('Valor inválido', 'err'); return; }
+
+  // Registrar aporte no investimento
   await api(`/api/investimentos/${id}/aporte`, 'POST', { valor });
+
+  // Buscar nome do investimento para a despesa
+  const invs = await api('/api/investimentos');
+  const inv = invs.find(x => x.id === id);
+  const nomeInv = inv ? inv.nome : 'Investimento';
+
+  // Gerar despesa para aparecer nos gastos do mês
+  const hoje = new Date().toISOString().split('T')[0];
+  await api('/api/despesas', 'POST', {
+    nome: `Aporte: ${nomeInv}`,
+    valor: valor,
+    data: hoje,
+    categoria: 'Investimento',
+    forma_pagamento: 'debito',
+    cartao_id: null,
+    parcelas: 1,
+    observacao: 'Aporte em investimento'
+  });
+
   closeModal('m-aporte');
-  toast('Aporte registrado!', 'ok');
+  toast('Aporte registrado e lançado nos gastos!', 'ok');
   loadInvestimentos();
+  loadDashboard();
 }
 
 // ══════════ DETALHE DO CARTÃO (mês a mês) ══════════

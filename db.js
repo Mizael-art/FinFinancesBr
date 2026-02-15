@@ -245,11 +245,19 @@ async function analiseFinanceira(ano, mes) {
     cats[d.categoria] = (cats[d.categoria] || 0) + d.valor;
   });
   
-  const total_gasto = Object.values(cats).reduce((a, b) => a + b, 0);
+  const total_gasto_despesas = Object.values(cats).reduce((a, b) => a + b, 0);
   
-  // Contas fixas
+  // Contas fixas — incluir no total gasto
   const contasFixas = await getAll('contas_fixas', 'ativo', 1);
   const contas_fixas = contasFixas.reduce((a, b) => a + b.valor, 0);
+  
+  // Adicionar contas fixas às categorias (para análise correta)
+  contasFixas.forEach(c => {
+    const cat = c.categoria || 'Outros';
+    cats[cat] = (cats[cat] || 0) + c.valor;
+  });
+  
+  const total_gasto = total_gasto_despesas + contas_fixas;
   
   // Total crédito
   const total_credito = despesasMes
@@ -448,12 +456,19 @@ async function analiseFinanceira(ano, mes) {
     };
   }
   
+  // Pontos fortes com icone e texto (objetos, não strings)
+  const pontos_fortes_fmt = pontos_fortes.map(p => {
+    if (typeof p === 'string') return { icone: '✅', texto: p };
+    return p;
+  });
+
   return {
     score,
     diagnostico,
-    dicas: dicas.slice(0, 8), // Top 8 dicas
-    pontos_fortes,
+    dicas: dicas.slice(0, 8),
+    pontos_fortes: pontos_fortes_fmt,
     alertas: alertas_analise,
+    cats_analise: cats_analise.sort((a, b) => b.valor - a.valor),
     categorias: cats_analise.sort((a, b) => b.valor - a.valor),
     resumo: {
       renda,
@@ -597,27 +612,40 @@ window.DB = {
     
     const total_gasto = despesasMes.reduce((a, b) => a + b.valor, 0);
     
-    // Cartões com fatura
+    // Cartões com fatura — usa TOTAL comprometido (todas parcelas pendentes)
     const cartoes = await getAll('cartoes', 'ativo', 1);
     const cartoes_data = [];
+    const todasDespesasParaCartao = await getAll('despesas');
     
     for (const cartao of cartoes) {
-      const usadoCartao = despesasMes
+      // Fatura do mês corrente (parcela que cai neste mês)
+      const faturaDoMes = despesasMes
         .filter(d => Number(d.cartao_id) === Number(cartao.id))
+        .reduce((a, b) => a + b.valor, 0);
+      
+      // Total comprometido = TODAS as parcelas futuras ainda não pagas
+      // (inclui o mês atual e todos os meses seguintes do parcelamento)
+      const hoje = `${ano}-${String(mes).padStart(2,'0')}-01`;
+      const totalComprometido = todasDespesasParaCartao
+        .filter(d => Number(d.cartao_id) === Number(cartao.id) && d.data >= hoje)
         .reduce((a, b) => a + b.valor, 0);
       
       cartoes_data.push({
         ...cartao,
-        fatura: Math.round(usadoCartao * 100) / 100,
-        disponivel: Math.round((cartao.limite_total - usadoCartao) * 100) / 100,
-        pct: Math.round((usadoCartao / cartao.limite_total * 100) * 10) / 10
+        fatura: Math.round(faturaDoMes * 100) / 100,
+        total_comprometido: Math.round(totalComprometido * 100) / 100,
+        disponivel: Math.round((cartao.limite_total - totalComprometido) * 100) / 100,
+        pct: Math.round((totalComprometido / cartao.limite_total * 100) * 10) / 10
       });
     }
     
     const contas = await getAll('contas_fixas', 'ativo', 1);
     const total_fixo = contas.reduce((a, b) => a + b.valor, 0);
     
-    // Histórico 6 meses
+    // Total gasto real = despesas do mês + contas fixas mensais
+    const total_gasto_real = despesasMes.reduce((a, b) => a + b.valor, 0) + total_fixo;
+    const saldo = renda - total_gasto_real;
+    const pct_comprometido = renda > 0 ? Math.round((total_gasto_real / renda * 100) * 10) / 10 : 0;
     const historico = [];
     const MESES_BR = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     
@@ -646,13 +674,10 @@ window.DB = {
       .filter(d => d.forma_pagamento === 'credito' || d.forma_pagamento === 'parcelado')
       .reduce((a, b) => a + b.valor, 0);
     
-    const saldo = renda - total_gasto;
-    const pct_comprometido = renda > 0 ? Math.round((total_gasto / renda * 100) * 10) / 10 : 0;
-    
     return {
       profile,
       renda: Math.round(renda * 100) / 100,
-      total_gasto: Math.round(total_gasto * 100) / 100,
+      total_gasto: Math.round(total_gasto_real * 100) / 100,
       saldo: Math.round(saldo * 100) / 100,
       pct_comprometido,
       por_categoria: por_cat,
