@@ -50,23 +50,6 @@ finfinance-pwa/
 └── generate-icons.html # Gerador de ícones (opcional)
 ```
 
-## 🚀 Deploy no GitHub Pages
-
-```bash
-# 1. Criar repositório no GitHub
-git init
-git add .
-git commit -m "Initial commit - FinFinance PWA"
-git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/finfinance-pwa.git
-git push -u origin main
-
-# 2. Habilitar GitHub Pages
-# Vá em: Settings > Pages > Source: main branch > Salvar
-
-# 3. Acesse: https://SEU-USUARIO.github.io/finfinance-pwa
-```
-
 ## 🔧 Tecnologias
 
 - **Frontend:** HTML5, CSS3, JavaScript (ES6+)
